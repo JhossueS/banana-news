@@ -1,0 +1,383 @@
+---
+/**
+ * Lienzo del mapa de Ecuador (SVG, controles y estilos compartidos).
+ * Lo usan el mapa de la portada (modo `ver`) y la página de publicar (modo `ubicar`).
+ * El contenedor debe tener la clase `nmap` y `data-mode`; el script `news-map.ts` lo anima.
+ */
+import Icon from './Icon.astro';
+---
+
+<div class="map-box">
+	<div class="crumb" id="map-crumb"></div>
+	<div class="zoom">
+		<button type="button" data-act="zoom-in" aria-label="Acercar"><Icon name="plus" size={18} stroke={2.5} /></button>
+		<button type="button" data-act="zoom-out" aria-label="Alejar"><Icon name="minus" size={18} stroke={2.5} /></button>
+		<button type="button" data-act="country" aria-label="Ver Ecuador completo"><Icon name="maximize" size={18} /></button>
+	</div>
+	<div class="loading" id="map-loading">Cargando mapa…</div>
+	<svg id="map-svg" viewBox="20 5 810 665" role="group" aria-label="Mapa de Ecuador por provincias y cantones">
+		<rect id="map-ocean" x="-3000" y="-3000" width="7000" height="7000" fill="#EDEDE7"></rect>
+		<g id="g-countries" pointer-events="none" fill="#9CA0A8">
+			<text x="640" y="34" data-big font-weight="700" letter-spacing="2">COLOMBIA</text>
+			<text x="560" y="640" data-big font-weight="700" letter-spacing="2">PERÚ</text>
+			<text x="60" y="450" data-big font-weight="500" font-style="italic">Océano Pacífico</text>
+			<text x="32" y="38" data-small font-weight="700" letter-spacing="1.5" fill="#4B5058">GALÁPAGOS</text>
+			<rect x="22" y="22" width="205" height="190" fill="none" stroke="#9CA0A8" stroke-dasharray="6 5"></rect>
+		</g>
+		<g id="g-prov"></g>
+		<g id="g-cant"></g>
+		<g id="g-sel"></g>
+		<g id="g-labels"></g>
+		<g id="g-pins"></g>
+		<g id="g-custom"></g>
+	</svg>
+	<p class="hint" id="map-hint"></p>
+</div>
+
+<style is:global>
+	/* Global porque el script inyecta parte del marcado (paneles, capas SVG) */
+	.nmap .layout {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 24px;
+		align-items: flex-start;
+	}
+	.nmap .map-col {
+		flex: 999 1 640px;
+		min-width: 0;
+	}
+	.nmap .map-box {
+		position: relative;
+		overflow: hidden;
+		background: var(--bn-gris-100);
+		box-shadow: inset 0 0 0 1px var(--bn-gris-200);
+	}
+	.nmap #map-svg {
+		display: block;
+		width: 100%;
+		aspect-ratio: 810 / 665;
+		user-select: none;
+		-webkit-user-select: none;
+	}
+	.nmap #map-svg text {
+		font-family: var(--font-sans);
+	}
+	.nmap .prov,
+	.nmap .pin {
+		cursor: pointer;
+	}
+	.nmap .cant {
+		cursor: crosshair;
+	}
+	.nmap .prov:hover,
+	.nmap .cant:hover {
+		fill: var(--bn-amarillo-300);
+	}
+	.nmap .prov:focus-visible,
+	.nmap .pin:focus-visible {
+		outline: 3px solid var(--bn-negro);
+		outline-offset: 2px;
+		box-shadow: none;
+	}
+	.nmap .loading {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 24px;
+		text-align: center;
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+	}
+	.nmap .loading[hidden] {
+		display: none;
+	}
+
+	/* Controles flotantes */
+	.nmap .crumb {
+		position: absolute;
+		left: 10px;
+		top: 10px;
+		z-index: 1;
+		display: flex;
+		align-items: center;
+		min-height: 40px;
+		max-width: calc(100% - 80px);
+		background: var(--bn-hueso);
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+		border-radius: var(--radius-s);
+		font-size: 13px;
+		font-weight: 700;
+	}
+	.nmap .crumb-name {
+		padding: 0 12px;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+	.nmap .crumb-back,
+	.nmap .side-back {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		border: 0;
+		background: transparent;
+		font-size: 13px;
+		font-weight: 700;
+	}
+	.nmap .crumb-back {
+		min-height: 40px;
+		padding: 0 10px 0 8px;
+		box-shadow: inset -1px 0 0 var(--bn-gris-200);
+	}
+	.nmap .zoom {
+		position: absolute;
+		right: 10px;
+		top: 10px;
+		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		background: var(--bn-hueso);
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+		border-radius: var(--radius-s);
+	}
+	.nmap .zoom button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		padding: 0;
+		border: 0;
+		background: var(--bn-hueso);
+		color: var(--bn-negro);
+	}
+	.nmap .zoom button + button {
+		box-shadow: inset 0 1px 0 var(--bn-gris-200);
+	}
+	.nmap .zoom button:hover,
+	.nmap .crumb-back:hover {
+		background: var(--bn-amarillo-100);
+	}
+	.nmap .hint {
+		position: absolute;
+		left: 10px;
+		right: 10px;
+		bottom: 10px;
+		width: fit-content;
+		max-width: calc(100% - 20px);
+		padding: 6px 10px;
+		background: rgba(247, 247, 242, 0.94);
+		border-radius: var(--radius-xs);
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+		pointer-events: none;
+	}
+
+	/* Panel lateral */
+	.nmap .side {
+		flex: 1 1 380px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		padding: clamp(20px, 3vw, 28px);
+		background: var(--bn-hueso);
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+	}
+	.nmap .side hr {
+		width: 100%;
+		height: 1px;
+		margin: 0;
+		border: 0;
+		background: var(--bn-gris-200);
+	}
+	.nmap .explore {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.nmap .side-h {
+		font-size: 22px;
+		font-weight: 800;
+		letter-spacing: -0.01em;
+	}
+	.nmap .side-p {
+		font-size: 14px;
+		line-height: 1.4;
+		color: var(--bn-gris-600);
+	}
+	.nmap .prov-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 6px;
+	}
+	.nmap .prov-btn {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 6px;
+		min-height: 40px;
+		padding: 0 10px;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: #fff;
+		box-shadow: inset 0 0 0 1px var(--bn-gris-200);
+		font-size: 13px;
+		font-weight: 600;
+		text-align: left;
+	}
+	.nmap .prov-btn.has {
+		background: var(--bn-amarillo-100);
+	}
+	.nmap .prov-btn:hover {
+		background: var(--bn-amarillo-300);
+	}
+	.nmap .prov-btn .nm {
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+	.nmap .prov-btn .ct {
+		font-weight: 800;
+	}
+	.nmap .side-back {
+		align-self: flex-start;
+		min-height: 40px;
+		padding: 0;
+	}
+	.nmap .side-back:hover {
+		text-decoration: underline;
+		text-decoration-color: var(--bn-amarillo);
+		text-decoration-thickness: 2px;
+	}
+	.nmap .side-prov {
+		font-size: 28px;
+		font-weight: 800;
+		line-height: 1.05;
+		letter-spacing: -0.015em;
+	}
+	.nmap .side-meta {
+		font-size: 14px;
+		color: var(--bn-gris-600);
+	}
+	.nmap .side-cap {
+		margin-top: 6px;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--bn-gris-600);
+	}
+	.nmap .news-btn {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 4px;
+		padding: 10px 12px;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: var(--bn-gris-100);
+		text-align: left;
+	}
+	.nmap .news-btn.on,
+	.nmap .news-btn:hover {
+		background: var(--bn-amarillo-100);
+	}
+	/* Punto del color del pin en el mapa */
+	.nmap .news-btn .k::before {
+		content: '';
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		margin-right: 6px;
+		border-radius: 50%;
+		background: var(--bar);
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+	}
+	.nmap .news-btn .k {
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+	.nmap .news-btn .t {
+		font-size: 15px;
+		font-weight: 700;
+		line-height: 1.25;
+	}
+	.nmap .side-empty {
+		padding: 10px 12px;
+		background: var(--bn-gris-100);
+		font-size: 14px;
+		line-height: 1.4;
+	}
+	.nmap .field-sm {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-top: 4px;
+		font-size: 13px;
+		font-weight: 600;
+	}
+	.nmap .field-sm select {
+		min-height: 44px;
+		padding: 0 14px;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: #fff;
+		box-shadow: inset 0 0 0 1px var(--bn-gris-400);
+		font-size: 15px;
+	}
+
+	/* Recuadro de estado: noticia elegida (ver) o ubicación elegida (ubicar) */
+	.nmap .info {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 6px;
+		padding: 14px 16px;
+		background: var(--bn-gris-100);
+		border-radius: var(--radius-s);
+		color: var(--bn-negro);
+	}
+	.nmap .i-label {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+	.nmap .i-title {
+		font-size: 17px;
+		font-weight: 800;
+		line-height: 1.2;
+	}
+	.nmap .i-meta {
+		font-size: 13px;
+		line-height: 1.4;
+	}
+	.nmap .i-coords {
+		font-size: 13px;
+		font-weight: 600;
+	}
+
+	/* Móvil: el mapa llega hasta los bordes de la pantalla */
+	@media (max-width: 720px) {
+		.nmap .map-col {
+			flex-basis: 100%;
+			margin-inline: calc(var(--gutter) * -1);
+		}
+		.nmap .side {
+			flex-basis: 100%;
+		}
+	}
+</style>

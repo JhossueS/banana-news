@@ -52,9 +52,12 @@ const ICON = {
 	'map-pin': '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
 	'triangle-alert': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
 	info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+	'shield-check': '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+	clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+	'arrow-right': '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
 } as const;
-const icon = (name: keyof typeof ICON, size = 14) =>
-	`<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICON[name]}</svg>`;
+const icon = (name: keyof typeof ICON, size = 14, stroke = 2.5) =>
+	`<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICON[name]}</svg>`;
 
 // Proyección idéntica a la usada al generar public/data/ecuador.json
 const proj = (lon: number, lat: number): [number, number] =>
@@ -62,7 +65,22 @@ const proj = (lon: number, lat: number): [number, number] =>
 const unproj = (x: number, y: number, gal: boolean) =>
 	gal ? { lon: (x - 15) / 70 - 92, lat: 0.8 - (y - 40) / 70 } : { lon: x / 100 - 83.4, lat: 1.6 - y / 100 };
 
-function initMap() {
+/**
+ * `ver`: portada, solo lectura. Los pines muestran la noticia y, si está verificada, enlazan a la nota.
+ * `ubicar`: página de publicar. Sin pines; se toca un cantón para fijar el punto de la nueva noticia.
+ */
+type Mode = 'ver' | 'ubicar';
+
+const statusOf = (n: MapNews) =>
+	n.urgent
+		? ({ label: 'Última hora', ic: 'zap', cls: 'urgent' } as const)
+		: n.verificada
+			? ({ label: 'Verificada', ic: 'shield-check', cls: 'ok' } as const)
+			: ({ label: 'En verificación', ic: 'clock', cls: 'pending' } as const);
+const pinColor = (n: MapNews) => (n.urgent ? CORAL : n.verificada ? AMARILLO : '#FFFFFF');
+
+function initMap(root: HTMLElement) {
+	const mode: Mode = root.dataset.mode === 'ubicar' ? 'ubicar' : 'ver';
 	const svg = $<SVGSVGElement>('map-svg');
 	if (!svg) return;
 	const gProv = $<SVGGElement>('g-prov')!;
@@ -76,15 +94,18 @@ function initMap() {
 	const crumb = $('map-crumb')!;
 	const hint = $('map-hint')!;
 	const explore = $('map-explore')!;
-	const info = $('map-info')!;
-	const btnPublish = $<HTMLButtonElement>('btn-publish')!;
-	const publishStatus = $('publish-status')!;
-	const formEl = $<HTMLFormElement>('form-mapa')!;
+	// Solo en `ver`
+	const detail = $('map-detail');
+	// Solo en `ubicar`
+	const info = $('map-info');
+	const btnPublish = $<HTMLButtonElement>('btn-publish');
+	const publishStatus = $('publish-status');
+	const formEl = $<HTMLFormElement>('form-mapa');
 
 	let geo: Geo | null = null;
 	let vb: Box = [...FULL];
 	let prov: string | null = null;
-	let sel = 'quito';
+	let sel = mode === 'ver' ? (mapNews[0]?.id ?? 'none') : 'none';
 	let custom: Custom | null = null;
 	let raf = 0;
 	let drag: { x: number; y: number; vb: Box; w: number } | null = null;
@@ -148,10 +169,16 @@ function initMap() {
 		if (dragged) return;
 		const p = provByCode(c);
 		if (!p) return;
+		if (c === prov && !keepSel) return;
 		prov = c;
 		if (!keepSel) {
-			const first = mapNews.find((n) => n.c === c);
-			sel = first ? first.id : 'none';
+			if (mode === 'ver') {
+				const first = mapNews.find((n) => n.c === c);
+				sel = first ? first.id : 'none';
+			} else if (custom?.code?.slice(0, 2) !== c) {
+				sel = 'none';
+				custom = null;
+			}
 		}
 		renderStatic();
 		renderPanels();
@@ -159,7 +186,7 @@ function initMap() {
 	}
 	function goCountry() {
 		prov = null;
-		if (sel === 'none') sel = 'quito';
+		if (mode === 'ver' && sel === 'none') sel = mapNews[0]?.id ?? 'none';
 		renderStatic();
 		renderPanels();
 		animateTo([...FULL]);
@@ -189,7 +216,7 @@ function initMap() {
 		if (!geo) return;
 		gProv.innerHTML = geo.provinces
 			.map((p) => {
-				const n = counts[p.c] || 0;
+				const n = mode === 'ver' ? counts[p.c] || 0 : 0;
 				const fill = prov ? (p.c === prov ? HUESO : GRIS_200) : n ? AMARILLO_100 : HUESO;
 				const label = `${p.n}${n ? `, ${n} ${n === 1 ? 'noticia' : 'noticias'}` : ''}`;
 				return `<path class="prov" data-c="${p.c}" d="${p.d}" fill="${fill}" stroke="${INK}" stroke-width="${prov ? 1 : 1.5}" vector-effect="non-scaling-stroke" stroke-linejoin="round" fill-rule="evenodd" role="button" tabindex="${prov ? -1 : 0}" aria-label="${esc(label)}"><title>${esc(p.n)}</title></path>`;
@@ -199,7 +226,9 @@ function initMap() {
 			? cantonsOf(prov)
 					.map((k) => {
 						const on = sel === 'custom' && custom?.code === k.c;
-						return `<path class="cant" data-c="${k.c}" d="${k.d}" fill="${on ? AMARILLO_300 : HUESO}" stroke="#6B7280" stroke-width="0.9" vector-effect="non-scaling-stroke" stroke-linejoin="round" fill-rule="evenodd"><title>Cantón ${esc(k.n)}</title></path>`;
+						// En `ver` los cantones son solo contexto: no reciben clics
+						const attrs = mode === 'ver' ? 'pointer-events="none"' : 'class="cant"';
+						return `<path ${attrs} data-c="${k.c}" d="${k.d}" fill="${on ? AMARILLO_300 : HUESO}" stroke="#6B7280" stroke-width="0.9" vector-effect="non-scaling-stroke" stroke-linejoin="round" fill-rule="evenodd"><title>Cantón ${esc(k.n)}</title></path>`;
 					})
 					.join('')
 			: '';
@@ -252,72 +281,129 @@ function initMap() {
 
 		// Pines
 		const pinScale = px(Math.max(W / 780, 0.8));
-		gPins.innerHTML = mapNews
+		gPins.innerHTML = (mode === 'ver' ? mapNews : [])
 			.map((n) => {
 				const [x, y] = proj(n.lon, n.lat);
 				const on = sel === n.id;
 				const k = pinScale * (on ? 1.3 : 1) * 1.15;
-				const fill = on ? INK : n.urgent ? CORAL : AMARILLO;
+				const fill = on ? INK : pinColor(n);
 				const dot = on ? AMARILLO : INK;
-				const aria = `${n.city}: ${n.title}${n.urgent ? ' (última hora)' : ''}`;
+				const aria = `${n.city}: ${n.title} (${statusOf(n).label.toLowerCase()})`;
 				return `<g class="pin" data-id="${n.id}" transform="translate(${x} ${y}) scale(${k})" role="button" tabindex="0" aria-label="${esc(aria)}" aria-pressed="${on}"><title>${esc(aria)}</title><path d="M0 0C-5-7-9-11-9-16A9 9 0 1 1 9-16C9-11 5-7 0 0Z" fill="${fill}" stroke="${INK}" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="0" cy="-16" r="3.2" fill="${dot}"/></g>`;
 			})
 			.join('');
 
 		// Marcador de ubicación libre
-		if (sel === 'custom' && custom) {
+		if (mode === 'ubicar' && sel === 'custom' && custom) {
 			const k = px(Math.max(W / 780, 0.8)) * 1.15;
 			gCustom.innerHTML = `<g transform="translate(${custom.x} ${custom.y}) scale(${k})" pointer-events="none"><circle r="10" fill="${custom.inside ? AMARILLO : '#9CA0A8'}" stroke="${INK}" stroke-width="2.5"/><circle r="2.6" fill="${INK}"/></g>`;
 		} else gCustom.innerHTML = '';
 	}
 
 	/* ── Render: paneles de texto ── */
-	function currentInfo() {
-		const selNews = mapNews.find((n) => n.id === sel);
+	const BACK = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>`;
+	const byName = <T extends { n: string }>(list: T[]) => [...list].sort((a, b) => a.n.localeCompare(b.n, 'es'));
+
+	/** `ver`: la noticia elegida, con enlace a la nota si está verificada */
+	function renderDetail() {
+		if (!detail) return;
+		const n = mapNews.find((x) => x.id === sel);
+		if (!n) {
+			const P = prov ? provByCode(prov) : null;
+			detail.innerHTML = `<span class="d-kicker">${esc(P ? P.n : 'Ecuador')}</span><p class="d-title">Toca un punto del mapa</p><p class="d-note">${P ? 'Aún no hay noticias en esta provincia.' : 'Elige una noticia en el mapa o en la lista de provincias.'}</p>`;
+			return;
+		}
+		const st = statusOf(n);
+		const pn = provByCode(n.c);
+		const more = n.verificada
+			? `<a class="d-read" href="/noticias/${encodeURIComponent(n.nota)}/">Leer la noticia completa${icon('arrow-right', 18, 2.25)}</a>`
+			: '<p class="d-note">Estamos verificando esta información. Cuando se confirme, podrás leer la nota completa.</p>';
+		detail.innerHTML = `<span class="d-status d-status--${st.cls}">${icon(st.ic)}${st.label}</span><span class="d-kicker">${esc(n.tag)}</span><h3 class="d-title">${esc(n.title)}</h3><span class="d-place">${icon('map-pin')}${esc(n.city)}${pn ? `, ${esc(pn.n)}` : ''}</span>${more}`;
+	}
+
+	/** `ubicar`: la ubicación elegida para la nueva noticia */
+	function renderInfo() {
+		if (!info || !btnPublish) return;
 		const P = prov ? provByCode(prov) : null;
-		if (sel === 'custom' && custom && custom.inside) {
-			return {
-				label: 'Ubicación exacta',
-				ic: 'map-pin' as const,
+		let i: { label: string; ic: keyof typeof ICON; title: string; meta: string; coords: string; bg: string; blocked: boolean };
+		if (sel === 'custom' && custom?.inside) {
+			i = {
+				label: 'Ubicación elegida',
+				ic: 'map-pin',
 				title: `Cantón ${custom.canton}`,
 				meta: `${custom.prov}, Ecuador`,
 				coords: `Lat ${fmt(custom.lat)} · Lon ${fmt(custom.lon)}`,
 				bg: AMARILLO,
 				blocked: false,
 			};
-		}
-		if (sel === 'custom' && custom) {
-			return {
+		} else if (sel === 'custom' && custom) {
+			i = {
 				label: 'Fuera de Ecuador',
-				ic: 'triangle-alert' as const,
+				ic: 'triangle-alert',
 				title: 'Esta ubicación no está en Ecuador',
 				meta: 'El mapa solo admite puntos dentro del territorio ecuatoriano, incluido Galápagos.',
 				coords: 'Toca dentro de una provincia para continuar.',
 				bg: CORAL,
 				blocked: true,
 			};
-		}
-		if (selNews) {
-			const pn = provByCode(selNews.c);
-			return {
-				label: selNews.urgent ? `Última hora · ${selNews.tag}` : selNews.tag,
-				ic: (selNews.urgent ? 'zap' : 'file-text') as 'zap' | 'file-text',
-				title: selNews.title,
-				meta: selNews.city + (pn ? `, ${pn.n}` : ''),
-				coords: `Lat ${fmt(selNews.lat)} · Lon ${fmt(selNews.lon)}`,
+		} else {
+			i = {
+				label: 'Sin ubicación',
+				ic: 'info',
+				title: P ? 'Toca el lugar exacto en el mapa' : 'Elige la provincia',
+				meta: P ? `O elige el cantón de ${P.n} en la lista.` : 'Tócala en el mapa o elígela en la lista.',
+				coords: '',
 				bg: GRIS_100,
-				blocked: false,
+				blocked: true,
 			};
 		}
-		return {
-			label: 'Siguiente paso',
-			ic: 'info' as const,
-			title: P ? 'Toca un cantón en el mapa' : 'Elige una provincia',
-			meta: `Fijaremos la ubicación exacta de tu noticia dentro de ${P ? P.n : 'Ecuador'}.`,
-			coords: '',
-			bg: GRIS_100,
-			blocked: true,
-		};
+		info.style.background = i.bg;
+		info.innerHTML = `<span class="i-label">${icon(i.ic)}${esc(i.label)}</span><span class="i-title">${esc(i.title)}</span><span class="i-meta">${esc(i.meta)}</span>${i.coords ? `<span class="i-coords">${esc(i.coords)}</span>` : ''}`;
+		btnPublish.disabled = i.blocked;
+	}
+
+	function renderExplore(P: Prov | null) {
+		if (!geo) return;
+		if (mode === 'ubicar') {
+			if (!P) {
+				const opts = byName(geo.provinces)
+					.map((p) => `<option value="${p.c}">${esc(p.n)}</option>`)
+					.join('');
+				explore.innerHTML = `<label class="field-sm"><span>Provincia</span><select data-prov-select><option value="">Selecciona una provincia</option>${opts}</select></label>`;
+				return;
+			}
+			const opts = byName(cantonsOf(P.c))
+				.map((k) => `<option value="${k.c}"${custom?.code === k.c ? ' selected' : ''}>${esc(k.n)}</option>`)
+				.join('');
+			explore.innerHTML = `
+				<button type="button" data-act="country" class="side-back">${BACK}Cambiar provincia</button>
+				<h3 class="side-prov">${esc(P.n)}</h3>
+				<label class="field-sm"><span>Cantón</span><select data-canton><option value="">Selecciona un cantón</option>${opts}</select></label>`;
+			return;
+		}
+
+		if (!P) {
+			const items = byName(geo.provinces)
+				.map((p) => {
+					const n = counts[p.c] || 0;
+					return `<button type="button" class="prov-btn${n ? ' has' : ''}" data-prov="${p.c}"><span class="nm">${esc(p.n)}</span>${n ? `<span class="ct" aria-label="${n} noticias">${n}</span>` : ''}</button>`;
+				})
+				.join('');
+			explore.innerHTML = `<h3 class="side-h">Explora por provincia</h3><p class="side-p">El número indica cuántas noticias tiene cada provincia.</p><div class="prov-grid">${items}</div>`;
+			return;
+		}
+		const news = mapNews.filter((n) => n.c === P.c);
+		const list = news
+			.map((n) => {
+				const on = sel === n.id;
+				return `<button type="button" class="news-btn${on ? ' on' : ''}" data-news="${n.id}" aria-pressed="${on}" style="--bar:${pinColor(n)}"><span class="k">${esc(n.city)} · ${statusOf(n).label}</span><span class="t">${esc(n.title)}</span></button>`;
+			})
+			.join('');
+		explore.innerHTML = `
+			<button type="button" data-act="country" class="side-back">${BACK}Todo Ecuador</button>
+			<h3 class="side-prov">${esc(P.n)}</h3>
+			<span class="side-meta">Capital: ${esc(P.cap)} · ${cantonsOf(P.c).length} cantones</span>
+			${news.length ? `<span class="side-cap">Noticias en la provincia</span>${list}` : ''}`;
 	}
 
 	function renderPanels() {
@@ -325,49 +411,21 @@ function initMap() {
 		const P = prov ? provByCode(prov) : null;
 
 		crumb.innerHTML = P
-			? `<button type="button" data-act="country" class="crumb-back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>Ecuador</button><span class="crumb-name">${esc(P.n)}</span>`
+			? `<button type="button" data-act="country" class="crumb-back">${BACK}Ecuador</button><span class="crumb-name">${esc(P.n)}</span>`
 			: `<span class="crumb-name">Ecuador · ${geo.provinces.length} provincias</span>`;
 
-		hint.textContent = P ? 'Toca un cantón para fijar el punto exacto · Arrastra para moverte' : 'Toca una provincia para ver sus cantones';
+		hint.textContent =
+			mode === 'ver'
+				? P
+					? 'Toca un punto para ver la noticia · Arrastra para moverte'
+					: 'Toca un punto o una provincia'
+				: P
+					? 'Toca el lugar exacto donde ocurrió · Arrastra para moverte'
+					: 'Toca la provincia donde ocurrió';
 
-		if (!P) {
-			const items = [...geo.provinces]
-				.sort((a, b) => a.n.localeCompare(b.n, 'es'))
-				.map((p) => {
-					const n = counts[p.c] || 0;
-					return `<button type="button" class="prov-btn${n ? ' has' : ''}" data-prov="${p.c}"><span class="nm">${esc(p.n)}</span>${n ? `<span class="ct" aria-label="${n} noticias">${n}</span>` : ''}</button>`;
-				})
-				.join('');
-			explore.innerHTML = `<h3 class="side-h">Explora por provincia</h3><p class="side-p">Toca una provincia para ver sus cantones y sus noticias. El número indica cuántas noticias tiene.</p><div class="prov-grid">${items}</div>`;
-		} else {
-			const cantons = cantonsOf(P.c);
-			const news = mapNews.filter((n) => n.c === P.c);
-			const list = news
-				.map((n) => {
-					const on = sel === n.id;
-					const bar = n.urgent ? CORAL : on ? INK : AMARILLO;
-					return `<button type="button" class="news-btn${on ? ' on' : ''}" data-news="${n.id}" aria-pressed="${on}" style="--bar:${bar}"><span class="k">${esc(n.city)} · ${esc(n.tag)}</span><span class="t">${esc(n.title)}</span></button>`;
-				})
-				.join('');
-			const opts = cantons
-				.slice()
-				.sort((a, b) => a.n.localeCompare(b.n, 'es'))
-				.map((k) => `<option value="${k.c}"${custom?.code === k.c ? ' selected' : ''}>${esc(k.n)}</option>`)
-				.join('');
-			explore.innerHTML = `
-				<button type="button" data-act="country" class="side-back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>Todo Ecuador</button>
-				<h3 class="side-prov">${esc(P.n)}</h3>
-				<span class="side-meta">Capital: ${esc(P.cap)} · ${cantons.length} cantones</span>
-				<span class="side-cap">Noticias en la provincia</span>
-				${list}
-				${news.length ? '' : '<p class="side-empty">Aún no hay noticias en esta provincia. Toca un cantón en el mapa para crear la primera.</p>'}
-				<label class="field-sm"><span>Elegir cantón sin usar el mapa</span><select data-canton><option value="">Selecciona un cantón</option>${opts}</select></label>`;
-		}
-
-		const i = currentInfo();
-		info.style.background = i.bg;
-		info.innerHTML = `<span class="i-label">${icon(i.ic)}${esc(i.label)}</span><span class="i-title">${esc(i.title)}</span><span class="i-meta">${esc(i.meta)}</span>${i.coords ? `<span class="i-coords">${esc(i.coords)}</span>` : ''}`;
-		btnPublish.disabled = i.blocked;
+		renderExplore(P);
+		renderDetail();
+		renderInfo();
 	}
 
 	/* ── Interacción ── */
@@ -420,7 +478,7 @@ function initMap() {
 			openProv(pv.dataset.c!);
 			return;
 		}
-		if (t.id === 'map-ocean') {
+		if (mode === 'ubicar' && t.id === 'map-ocean') {
 			const q = svgPoint(e);
 			setCustomAt(q.x, q.y);
 		}
@@ -434,7 +492,6 @@ function initMap() {
 		}
 	});
 
-	const root = $('mapa')!;
 	root.addEventListener('click', (e) => {
 		const t = e.target as HTMLElement;
 		const act = t.closest<HTMLElement>('[data-act]')?.dataset.act;
@@ -452,6 +509,11 @@ function initMap() {
 	});
 	root.addEventListener('change', (e) => {
 		const t = e.target as HTMLSelectElement;
+		if (t.matches('[data-prov-select]') && t.value) {
+			openProv(t.value);
+			root.querySelector<HTMLSelectElement>('[data-canton]')?.focus();
+			return;
+		}
 		if (!t.matches('[data-canton]') || !geo) return;
 		const k = geo.cantons.find((x) => x.c === t.value);
 		if (!k) return;
@@ -460,7 +522,8 @@ function initMap() {
 		root.querySelector<HTMLSelectElement>('[data-canton]')?.focus();
 	});
 
-	formEl.addEventListener('submit', (e) => {
+	formEl?.addEventListener('submit', (e) => {
+		if (!btnPublish || !publishStatus) return;
 		e.preventDefault();
 		publishStatus.dataset.kind = '';
 		const title = formEl.elements.namedItem('titular') as HTMLInputElement;
@@ -515,4 +578,5 @@ function initMap() {
 		});
 }
 
-initMap();
+const mapRoot = document.querySelector<HTMLElement>('.nmap');
+if (mapRoot) initMap(mapRoot);

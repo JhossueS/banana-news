@@ -1,0 +1,178 @@
+---
+/** Publicar una noticia en el mapa: ubicar el punto y contar qué pasó. */
+import PageLayout from '../layouts/PageLayout.astro';
+import MapCanvas from '../components/MapCanvas.astro';
+import Icon from '../components/Icon.astro';
+---
+
+<PageLayout
+	title="Publica una noticia en el mapa"
+	group="Mapa de noticias"
+	crumbs={[{ label: 'Mapa de noticias', href: '/#mapa' }]}
+	deck="Ubica dónde ocurrió y cuéntanos qué pasó. La redacción la verifica antes de mostrarla en el mapa."
+>
+	<section class="nmap publish" data-mode="ubicar" aria-label="Publicar en el mapa">
+		<div class="layout">
+			<div class="map-col">
+				<MapCanvas />
+			</div>
+
+			<div class="side">
+				<div class="step">
+					<h2 class="step-h"><span class="step-n" aria-hidden="true">1</span>¿Dónde ocurrió?</h2>
+					<div id="map-explore" class="explore"></div>
+					<div id="map-info" class="info" role="status" aria-live="polite"></div>
+				</div>
+
+				<hr />
+
+				<form id="form-mapa" class="step" novalidate>
+					<h2 class="step-h"><span class="step-n" aria-hidden="true">2</span>¿Qué pasó?</h2>
+					<label class="field">
+						<span>Titular</span>
+						<input type="text" name="titular" autocomplete="off" placeholder="Verbo en presente, sujeto concreto" />
+					</label>
+					<label class="field">
+						<span>Sección</span>
+						<select name="seccion">
+							<option>Ciudad</option>
+							<option>Política</option>
+							<option>Economía</option>
+							<option>Ambiente</option>
+							<option>Última hora</option>
+						</select>
+					</label>
+					<label class="field">
+						<span>Bajada</span>
+						<textarea name="bajada" rows="3" placeholder="Una frase que explique por qué importa"></textarea>
+					</label>
+					<button type="submit" class="submit" id="btn-publish" disabled>
+						<Icon name="map-pin" size={18} />
+						Enviar para verificar
+					</button>
+					<p class="publish-status" id="publish-status" role="status" aria-live="polite"></p>
+				</form>
+			</div>
+		</div>
+	</section>
+
+	<p class="note">
+		<Icon name="shield-check" size={18} />
+		<span>
+			Nada se publica sin verificación. Si prefieres contarlo sin ubicarlo en el mapa, usa el
+			<a href="/#denuncias">formulario de denuncias</a>.
+		</span>
+	</p>
+</PageLayout>
+
+<style>
+	.step {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+	.step-h {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 20px;
+		font-weight: 800;
+		letter-spacing: -0.01em;
+	}
+	.step-n {
+		display: grid;
+		place-items: center;
+		width: 30px;
+		height: 30px;
+		flex-shrink: 0;
+		background: var(--bn-negro);
+		color: var(--bn-amarillo);
+		font-size: 15px;
+		border-radius: var(--radius-s);
+	}
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 600;
+	}
+	.field input,
+	.field select,
+	.field textarea {
+		min-height: 48px;
+		padding: 0 14px;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: #fff;
+		box-shadow: inset 0 0 0 1px var(--bn-gris-400);
+		font-size: 16px;
+		line-height: 1.4;
+	}
+	.field textarea {
+		padding: 12px 14px;
+		resize: vertical;
+	}
+	.field :global([aria-invalid='true']) {
+		box-shadow: inset 0 0 0 3px var(--bn-coral-700);
+	}
+	.submit {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		min-height: 48px;
+		padding: 0 20px;
+		border: 0;
+		border-radius: var(--radius-s);
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+		font-size: 15px;
+		font-weight: 800;
+	}
+	.submit:hover:not(:disabled) {
+		background: var(--bn-amarillo-300);
+	}
+	.submit:active:not(:disabled) {
+		opacity: 0.85;
+	}
+	.submit:disabled {
+		background: var(--bn-gris-200);
+		color: var(--bn-gris-600);
+		cursor: not-allowed;
+	}
+	.publish-status {
+		min-height: 1.4em;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1.4;
+	}
+	.publish-status[data-kind='ok'] {
+		padding: 10px 12px;
+		background: var(--bn-amarillo-100);
+		border-radius: var(--radius-xs);
+	}
+	.publish-status[data-kind='error'] {
+		color: var(--bn-coral-700);
+	}
+
+	.note {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		max-width: 72ch;
+		font-size: 15px;
+		line-height: 1.5;
+	}
+	.note :global(svg) {
+		margin-top: 2px;
+	}
+	.note a {
+		font-weight: 700;
+		text-decoration-color: var(--bn-amarillo-700);
+	}
+</style>
+
+<script>
+	import '../scripts/news-map';
+</script>

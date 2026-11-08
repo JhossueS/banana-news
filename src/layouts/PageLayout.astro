@@ -9,18 +9,20 @@ import Tag from '../components/Tag.astro';
 interface Props {
 	title: string;
 	deck?: string;
-	/** Etiqueta sobre el título y nombre del grupo en la ruta */
-	group: 'El medio' | 'Legal';
+	/** Etiqueta sobre el título */
+	group: string;
 	description?: string;
+	/** Pasos intermedios de la ruta, entre «Inicio» y el título */
+	crumbs?: { label: string; href: string }[];
 }
-const { title, deck, group, description = deck } = Astro.props;
+const { title, deck, group, description = deck, crumbs = [] } = Astro.props;
 ---
 
 <Layout title={`${title} · Banana News`} description={description}>
 	<Header current={null} />
 
 	<main id="contenido" class="wrap main">
-		<Crumbs items={[{ label: title }]} />
+		<Crumbs items={[...crumbs, { label: title }]} />
 		<header class="head">
 			<Tag size="md">{group}</Tag>
 			<h1 class="title">{title}</h1>

@@ -1,92 +1,57 @@
 ---
+/** Mapa de noticias de la portada: solo lectura. Publicar vive en /publicar/. */
+import { getCollection } from 'astro:content';
 import Tag from './Tag.astro';
 import Icon from './Icon.astro';
+import MapCanvas from './MapCanvas.astro';
+import { mapNews } from '../data/map-news';
+
+// Una noticia verificada debe enlazar a una nota que exista
+const notas = new Set((await getCollection('noticias')).map((n) => n.id));
+const rotas = mapNews.filter((n) => n.verificada && !notas.has(n.nota));
+if (rotas.length) {
+	throw new Error(`map-news: notas inexistentes en la colección "noticias": ${rotas.map((n) => `${n.id} → ${n.nota}`).join(', ')}`);
+}
 ---
 
-<section id="mapa" class="map-section" aria-labelledby="h-mapa">
+<section id="mapa" class="nmap map-section" data-mode="ver" aria-labelledby="h-mapa">
 	<div class="head">
 		<div class="head-text">
 			<div class="title-row">
 				<h2 id="h-mapa" class="h2">Mapa de noticias</h2>
 				<Tag variant="amarillo" size="sm" icon="map-pin">Solo Ecuador</Tag>
 			</div>
-			<p class="lede">
-				Las 24 provincias y sus cantones. Toca una provincia para entrar y luego el punto exacto donde ocurre la noticia.
-			</p>
+			<p class="lede">Lo que pasa en las 24 provincias, en el lugar donde ocurre. Toca un punto para ver la noticia.</p>
 		</div>
 		<ul class="legend" aria-label="Leyenda del mapa">
-			<li><span class="dot dot--news"></span>Noticia</li>
+			<li><span class="dot dot--ok"></span>Verificada</li>
 			<li><span class="dot dot--urgent"></span>Última hora</li>
-			<li><span class="dot dot--prov"></span>Provincia con noticias</li>
+			<li><span class="dot dot--pending"></span>En verificación</li>
 		</ul>
 	</div>
 
 	<div class="layout">
 		<div class="map-col">
-			<div class="map-box">
-				<div class="crumb" id="map-crumb"></div>
-				<div class="zoom">
-					<button type="button" data-act="zoom-in" aria-label="Acercar"><Icon name="plus" size={18} stroke={2.5} /></button>
-					<button type="button" data-act="zoom-out" aria-label="Alejar"><Icon name="minus" size={18} stroke={2.5} /></button>
-					<button type="button" data-act="country" aria-label="Ver Ecuador completo"><Icon name="maximize" size={18} /></button>
-				</div>
-				<div class="loading" id="map-loading">Cargando mapa…</div>
-				<svg id="map-svg" viewBox="20 5 810 665" role="group" aria-label="Mapa de Ecuador por provincias y cantones">
-					<rect id="map-ocean" x="-3000" y="-3000" width="7000" height="7000" fill="#EDEDE7"></rect>
-					<g id="g-countries" pointer-events="none" fill="#9CA0A8">
-						<text x="640" y="34" data-big font-weight="700" letter-spacing="2">COLOMBIA</text>
-						<text x="560" y="640" data-big font-weight="700" letter-spacing="2">PERÚ</text>
-						<text x="60" y="450" data-big font-weight="500" font-style="italic">Océano Pacífico</text>
-						<text x="32" y="38" data-small font-weight="700" letter-spacing="1.5" fill="#4B5058">GALÁPAGOS</text>
-						<rect x="22" y="22" width="205" height="190" fill="none" stroke="#9CA0A8" stroke-dasharray="6 5"></rect>
-					</g>
-					<g id="g-prov"></g>
-					<g id="g-cant"></g>
-					<g id="g-sel"></g>
-					<g id="g-labels"></g>
-					<g id="g-pins"></g>
-					<g id="g-custom"></g>
-				</svg>
-				<p class="hint" id="map-hint"></p>
-			</div>
+			<MapCanvas />
 		</div>
 
-		<aside class="side" aria-label="Explorar y crear noticia">
-			<div id="map-explore" class="explore"></div>
+		<aside class="side" aria-label="Noticias del mapa">
+			<div id="map-detail" class="detail" aria-live="polite"></div>
 			<hr />
-			<form id="form-mapa" class="create" novalidate>
-				<h3 class="create-h">Crear noticia con ubicación</h3>
-				<div id="map-info" class="info" role="status" aria-live="polite"></div>
-				<label class="field">
-					<span>Titular</span>
-					<input type="text" name="titular" autocomplete="off" placeholder="Verbo en presente, sujeto concreto" />
-				</label>
-				<label class="field">
-					<span>Sección</span>
-					<select name="seccion">
-						<option>Política</option>
-						<option>Economía</option>
-						<option>Ciudad</option>
-						<option>Ambiente</option>
-						<option>Última hora</option>
-					</select>
-				</label>
-				<label class="field">
-					<span>Bajada</span>
-					<textarea name="bajada" rows="3" placeholder="Una frase que explique la utilidad"></textarea>
-				</label>
-				<button type="submit" class="publish" id="btn-publish" disabled>
-					<Icon name="map-pin" size={18} />
-					Publicar en el mapa
-				</button>
-				<p class="publish-status" id="publish-status" role="status" aria-live="polite"></p>
-			</form>
+			<div id="map-explore" class="explore"></div>
+			<a href="/publicar/" class="publish-link">
+				<span class="publish-ic"><Icon name="map-pin" size={18} /></span>
+				<span class="publish-txt">
+					<b>¿Pasa algo cerca de ti?</b>
+					<span>Publica una noticia en el mapa</span>
+				</span>
+				<Icon name="arrow-right" size={20} class="arrow" />
+			</a>
 		</aside>
 	</div>
 </section>
 
 <style is:global>
-	/* Global porque el script inyecta parte del marcado (paneles, capas SVG) */
 	#mapa {
 		display: flex;
 		flex-direction: column;
@@ -142,444 +107,154 @@ import Icon from './Icon.astro';
 	#mapa .dot {
 		width: 14px;
 		height: 14px;
-	}
-	#mapa .dot--news,
-	#mapa .dot--urgent {
 		border-radius: 50%;
 		box-shadow: inset 0 0 0 2px var(--bn-negro);
 	}
-	#mapa .dot--news {
+	#mapa .dot--ok {
 		background: var(--bn-amarillo);
 	}
 	#mapa .dot--urgent {
 		background: var(--bn-coral);
 	}
-	#mapa .dot--prov {
-		background: var(--bn-amarillo-100);
-		box-shadow: inset 0 0 0 1px var(--bn-negro);
+	#mapa .dot--pending {
+		background: #fff;
 	}
 
-	#mapa .layout {
+	/* Noticia elegida */
+	#mapa .detail {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 24px;
+		flex-direction: column;
 		align-items: flex-start;
-	}
-	#mapa .map-col {
-		flex: 999 1 640px;
-		min-width: 0;
-	}
-	#mapa .map-box {
-		position: relative;
-		overflow: hidden;
-		background: var(--bn-gris-100);
-		box-shadow: inset 0 0 0 1px var(--bn-gris-200);
-	}
-	#mapa #map-svg {
-		display: block;
-		width: 100%;
-		aspect-ratio: 810 / 665;
-		user-select: none;
-		-webkit-user-select: none;
-	}
-	#mapa #map-svg text {
-		font-family: var(--font-sans);
-	}
-	#mapa .prov,
-	#mapa .cant,
-	#mapa .pin {
-		cursor: pointer;
-	}
-	#mapa .cant {
-		cursor: crosshair;
-	}
-	#mapa .prov:hover,
-	#mapa .cant:hover {
-		fill: var(--bn-amarillo-300);
-	}
-	#mapa .prov:focus-visible,
-	#mapa .pin:focus-visible {
-		outline: 3px solid var(--bn-negro);
-		outline-offset: 2px;
-		box-shadow: none;
-	}
-	#mapa .loading {
-		position: absolute;
-		inset: 0;
-		z-index: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 24px;
-		text-align: center;
-		font-size: 14px;
-		font-weight: 600;
-		color: var(--bn-gris-600);
-	}
-	#mapa .loading[hidden] {
-		display: none;
-	}
-
-	/* Controles flotantes */
-	#mapa .crumb {
-		position: absolute;
-		left: 10px;
-		top: 10px;
-		z-index: 1;
-		display: flex;
-		align-items: center;
-		min-height: 40px;
-		max-width: calc(100% - 80px);
-		background: var(--bn-hueso);
-		box-shadow: inset 0 0 0 2px var(--bn-negro);
-		border-radius: var(--radius-s);
-		font-size: 13px;
-		font-weight: 700;
-	}
-	#mapa .crumb-name {
-		padding: 0 12px;
-		overflow: hidden;
-		white-space: nowrap;
-		text-overflow: ellipsis;
-	}
-	#mapa .crumb-back,
-	#mapa .side-back {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		border: 0;
-		background: transparent;
-		font-size: 13px;
-		font-weight: 700;
-	}
-	#mapa .crumb-back {
-		min-height: 40px;
-		padding: 0 10px 0 8px;
-		box-shadow: inset -1px 0 0 var(--bn-gris-200);
-	}
-	#mapa .zoom {
-		position: absolute;
-		right: 10px;
-		top: 10px;
-		z-index: 1;
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-		background: var(--bn-hueso);
-		box-shadow: inset 0 0 0 2px var(--bn-negro);
-		border-radius: var(--radius-s);
-	}
-	#mapa .zoom button {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 44px;
-		height: 44px;
-		padding: 0;
-		border: 0;
-		background: var(--bn-hueso);
-		color: var(--bn-negro);
-	}
-	#mapa .zoom button + button {
-		box-shadow: inset 0 1px 0 var(--bn-gris-200);
-	}
-	#mapa .zoom button:hover,
-	#mapa .crumb-back:hover {
-		background: var(--bn-amarillo-100);
-	}
-	#mapa .hint {
-		position: absolute;
-		left: 10px;
-		right: 10px;
-		bottom: 10px;
-		width: fit-content;
-		max-width: calc(100% - 20px);
-		padding: 6px 10px;
-		background: rgba(247, 247, 242, 0.94);
-		border-radius: var(--radius-xs);
-		font-size: 12px;
-		font-weight: 600;
-		color: var(--bn-gris-600);
-		pointer-events: none;
-	}
-
-	/* Panel lateral */
-	#mapa .side {
-		flex: 1 1 380px;
-		min-width: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
-		padding: clamp(20px, 3vw, 28px);
-		background: var(--bn-hueso);
-		box-shadow: inset 0 0 0 2px var(--bn-negro);
-	}
-	#mapa .side hr {
-		width: 100%;
-		height: 1px;
-		margin: 0;
-		border: 0;
-		background: var(--bn-gris-200);
-	}
-	#mapa .explore {
-		display: flex;
-		flex-direction: column;
 		gap: 10px;
 	}
-	#mapa .side-h {
-		font-size: 22px;
-		font-weight: 800;
-		letter-spacing: -0.01em;
-	}
-	#mapa .side-p {
-		font-size: 14px;
-		line-height: 1.4;
-		color: var(--bn-gris-600);
-	}
-	#mapa .prov-grid {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 6px;
-	}
-	#mapa .prov-btn {
-		display: flex;
+	#mapa .d-status {
+		display: inline-flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: 6px;
-		min-height: 40px;
-		padding: 0 10px;
-		border: 0;
-		border-radius: var(--radius-xs);
-		background: #fff;
-		box-shadow: inset 0 0 0 1px var(--bn-gris-200);
-		font-size: 13px;
-		font-weight: 600;
-		text-align: left;
-	}
-	#mapa .prov-btn.has {
-		background: var(--bn-amarillo-100);
-	}
-	#mapa .prov-btn:hover {
-		background: var(--bn-amarillo-300);
-	}
-	#mapa .prov-btn .nm {
-		overflow: hidden;
-		white-space: nowrap;
-		text-overflow: ellipsis;
-	}
-	#mapa .prov-btn .ct {
+		padding: 5px 9px;
+		font-size: 12px;
 		font-weight: 800;
-	}
-	#mapa .side-back {
-		align-self: flex-start;
-		min-height: 40px;
-		padding: 0;
-	}
-	#mapa .side-back:hover {
-		text-decoration: underline;
-		text-decoration-color: var(--bn-amarillo);
-		text-decoration-thickness: 2px;
-	}
-	#mapa .side-prov {
-		font-size: 28px;
-		font-weight: 800;
-		line-height: 1.05;
-		letter-spacing: -0.015em;
-	}
-	#mapa .side-meta {
-		font-size: 14px;
-		color: var(--bn-gris-600);
-	}
-	#mapa .side-cap {
-		margin-top: 6px;
-		font-size: 11px;
-		font-weight: 700;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--bn-gris-600);
-	}
-	#mapa .news-btn {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 4px;
-		padding: 10px 12px;
-		border: 0;
-		border-radius: var(--radius-xs);
-		background: var(--bn-gris-100);
-		text-align: left;
-	}
-	#mapa .news-btn.on {
-		background: var(--bn-amarillo-100);
-	}
-	#mapa .news-btn:hover {
-		background: var(--bn-amarillo-100);
-	}
-	/* Punto del color del pin en el mapa */
-	#mapa .news-btn .k::before {
-		content: '';
-		display: inline-block;
-		width: 10px;
-		height: 10px;
-		margin-right: 6px;
-		border-radius: 50%;
-		background: var(--bar);
+		line-height: 1;
+		border-radius: var(--radius-s);
 		box-shadow: inset 0 0 0 2px var(--bn-negro);
 	}
-	#mapa .news-btn .k {
+	#mapa .d-status--ok {
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	#mapa .d-status--urgent {
+		background: var(--bn-coral);
+		box-shadow: inset 0 0 0 2px var(--bn-coral);
+	}
+	#mapa .d-status--pending {
+		background: transparent;
+	}
+	#mapa .d-kicker {
 		font-size: 11px;
 		font-weight: 700;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
+		color: var(--bn-gris-600);
 	}
-	#mapa .news-btn .t {
-		font-size: 15px;
-		font-weight: 700;
-		line-height: 1.25;
+	#mapa .d-title {
+		font-size: clamp(22px, 2.4vw, 26px);
+		font-weight: 800;
+		line-height: 1.1;
+		letter-spacing: -0.015em;
 	}
-	#mapa .side-empty {
-		padding: 10px 12px;
-		background: var(--bn-gris-100);
+	#mapa .d-place {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
 		font-size: 14px;
-		line-height: 1.4;
-	}
-	#mapa .field-sm {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		margin-top: 4px;
-		font-size: 13px;
 		font-weight: 600;
 	}
-
-	#mapa .create {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
-	}
-	#mapa .create-h {
-		font-size: 20px;
-		font-weight: 800;
-		letter-spacing: -0.01em;
-	}
-	#mapa .info {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		padding: 14px 16px;
-		background: var(--bn-gris-100);
-		border-radius: var(--radius-s);
-		color: var(--bn-negro);
-	}
-	#mapa .i-label {
+	#mapa .d-read {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
-		font-size: 11px;
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-	}
-	#mapa .i-title {
-		font-size: 17px;
-		font-weight: 800;
-		line-height: 1.2;
-	}
-	#mapa .i-meta {
-		font-size: 13px;
-		line-height: 1.4;
-	}
-	#mapa .i-coords {
-		font-size: 13px;
-		font-weight: 600;
-	}
-	#mapa .field {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		font-size: 13px;
-		font-weight: 600;
-	}
-	#mapa .field input,
-	#mapa .field select,
-	#mapa .field textarea,
-	#mapa .field-sm select {
-		min-height: 48px;
-		padding: 0 14px;
-		border: 0;
-		border-radius: var(--radius-xs);
-		background: #fff;
-		box-shadow: inset 0 0 0 1px var(--bn-gris-400);
-		font-size: 16px;
-		line-height: 1.4;
-	}
-	#mapa .field-sm select {
-		min-height: 44px;
-		font-size: 15px;
-	}
-	#mapa .field textarea {
-		padding: 12px 14px;
-		resize: vertical;
-	}
-	#mapa .field [aria-invalid='true'] {
-		box-shadow: inset 0 0 0 3px var(--bn-coral-700);
-	}
-	#mapa .publish {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
 		gap: 8px;
 		min-height: 48px;
-		padding: 0 20px;
-		border: 0;
+		margin-top: 4px;
+		padding: 0 18px;
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+		font-size: 15px;
+		font-weight: 700;
+		text-decoration: none;
 		border-radius: var(--radius-s);
+	}
+	#mapa .d-read svg {
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+	#mapa .d-read:hover {
+		background: var(--bn-negro-700);
+	}
+	#mapa .d-read:hover svg {
+		transform: translateX(4px);
+	}
+	#mapa .d-read:active {
+		opacity: 0.85;
+	}
+	#mapa .d-note {
+		padding: 10px 12px;
+		background: var(--bn-gris-100);
+		border-radius: var(--radius-xs);
+		font-size: 14px;
+		line-height: 1.45;
+	}
+
+	/* Enlace a publicar */
+	#mapa .publish-link {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin-top: 4px;
+		padding: 14px;
 		background: var(--bn-amarillo);
-		color: var(--bn-negro);
+		text-decoration: none;
+		border-radius: var(--radius-s);
+	}
+	#mapa .publish-ic {
+		display: grid;
+		place-items: center;
+		width: 40px;
+		height: 40px;
+		flex-shrink: 0;
+		background: var(--bn-negro);
+		color: var(--bn-amarillo);
+		border-radius: var(--radius-s);
+	}
+	#mapa .publish-txt {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		font-size: 14px;
+		line-height: 1.3;
+	}
+	#mapa .publish-txt b {
 		font-size: 15px;
 		font-weight: 800;
 	}
-	#mapa .publish:hover:not(:disabled) {
+	#mapa .publish-link .arrow {
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+	#mapa .publish-link:hover {
 		background: var(--bn-amarillo-300);
 	}
-	#mapa .publish:active:not(:disabled) {
+	#mapa .publish-link:hover .arrow {
+		transform: translateX(4px);
+	}
+	#mapa .publish-link:active {
 		opacity: 0.85;
 	}
-	#mapa .publish:disabled {
-		background: var(--bn-gris-200);
-		color: var(--bn-gris-600);
-		cursor: not-allowed;
-	}
-	#mapa .publish-status {
-		min-height: 1.4em;
-		font-size: 14px;
-		font-weight: 600;
-		line-height: 1.4;
-	}
-	#mapa .publish-status[data-kind='ok'] {
-		color: var(--bn-negro);
-		padding: 10px 12px;
-		background: var(--bn-amarillo-100);
-		border-radius: var(--radius-xs);
-	}
-	#mapa .publish-status[data-kind='error'] {
-		color: var(--bn-coral-700);
-	}
 
-	/* Móvil: el mapa llega hasta los bordes de la pantalla */
 	@media (max-width: 720px) {
 		#mapa .head {
 			align-items: flex-start;
 		}
 		#mapa .lede {
 			font-size: 15px;
-		}
-		#mapa .map-col {
-			flex-basis: 100%;
-			margin-inline: calc(var(--gutter) * -1);
-		}
-		#mapa .side {
-			flex-basis: 100%;
 		}
 		#mapa .legend {
 			font-size: 12px;
