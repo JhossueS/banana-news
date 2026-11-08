@@ -1,0 +1,224 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import Icon, { type IconName } from '../components/Icon.astro';
+import Prose from '../components/Prose.astro';
+import SectionTitle from '../components/SectionTitle.astro';
+import CtaBand from '../components/CtaBand.astro';
+import { site } from '../data/site';
+
+const principios: { n: string; titulo: string; texto: string }[] = [
+	{ n: '01', titulo: 'Verificamos antes de publicar', texto: 'Contrastamos cada dato con al menos dos fuentes. Si algo no está confirmado, lo decimos.' },
+	{ n: '02', titulo: 'Explicamos, no solo contamos', texto: 'Cada nota responde qué pasó, por qué importa y qué sigue. Lo importante, sin ruido.' },
+	{ n: '03', titulo: 'Todo el país, no solo la capital', texto: 'Cubrimos las 24 provincias y ubicamos cada noticia en el mapa para que veas lo que pasa cerca de ti.' },
+	{ n: '04', titulo: 'Corregimos a la vista', texto: 'Cuando nos equivocamos, corregimos la nota y lo indicamos en ella. Sin borrar el error en silencio.' },
+];
+
+const pasos: { icon: IconName; titulo: string; texto: string }[] = [
+	{ icon: 'megaphone', titulo: 'Recibimos', texto: 'Nos envías tu denuncia, con o sin tu nombre, desde la portada.' },
+	{ icon: 'shield-check', titulo: 'Verificamos', texto: 'Confirmamos el hecho en el lugar, con documentos o con otras fuentes.' },
+	{ icon: 'file-text', titulo: 'Publicamos', texto: 'Si se confirma, la publicamos y la ubicamos en el mapa de noticias.' },
+];
+---
+
+<PageLayout
+	title="Quiénes somos"
+	group="El medio"
+	deck="Banana News es un medio digital ecuatoriano. Nacimos para contar lo que pasa en el país de forma clara, verificada y sin cáscara."
+>
+	<section class="manifiesto" aria-label="Nuestra idea">
+		<p>
+			La información no debería costar trabajo entenderla. Le quitamos la cáscara a la noticia para que llegues directo a
+			<span class="hl">lo que importa.</span>
+		</p>
+	</section>
+
+	<section class="block" aria-labelledby="h-principios">
+		<SectionTitle id="h-principios">Nuestros principios</SectionTitle>
+		<ol class="principios">
+			{
+				principios.map((p) => (
+					<li class="principio">
+						<span class="num" aria-hidden="true">
+							{p.n}
+						</span>
+						<h3>{p.titulo}</h3>
+						<p>{p.texto}</p>
+					</li>
+				))
+			}
+		</ol>
+	</section>
+
+	<section class="block split" aria-labelledby="h-denuncias">
+		<div class="split-text">
+			<SectionTitle id="h-denuncias">Periodismo con la gente</SectionTitle>
+			<Prose>
+				<p>
+					Muchas de nuestras historias empiezan con un mensaje de alguien que vio algo que debía saberse. Por eso las denuncias
+					ciudadanas tienen un lugar propio en la portada.
+				</p>
+				<p>Ninguna denuncia se publica sin pasar por la redacción. Así funciona:</p>
+			</Prose>
+		</div>
+		<ol class="pasos on-dark">
+			{
+				pasos.map((p, i) => (
+					<li class="paso">
+						<span class="paso-icon">
+							<Icon name={p.icon} size={22} />
+						</span>
+						<div>
+							<h3>
+								<span class="sr-only">Paso {i + 1}: </span>
+								{p.titulo}
+							</h3>
+							<p>{p.texto}</p>
+						</div>
+					</li>
+				))
+			}
+		</ol>
+	</section>
+
+	<section class="block" aria-labelledby="h-independencia">
+		<SectionTitle id="h-independencia">Independencia</SectionTitle>
+		<Prose class="narrow">
+			<p>
+				Nos financiamos con publicidad. Los anunciantes no deciden qué publicamos ni cómo lo contamos: la publicidad siempre va
+				identificada y separada del contenido periodístico. Si algún contenido es patrocinado, lo verás señalado como tal.
+			</p>
+			<p>
+				Si encuentras un error en una nota, escríbenos a <a href={`mailto:${site.correos.correcciones}`}>{site.correos.correcciones}</a>.
+				Revisamos cada pedido de corrección y, conforme a la ley, atendemos los pedidos de rectificación y réplica.
+			</p>
+		</Prose>
+	</section>
+
+	<CtaBand href="/contacto/" label="Escríbenos">¿Tienes una historia, una idea o una crítica?</CtaBand>
+</PageLayout>
+
+<style>
+	.manifiesto p {
+		max-width: 26ch;
+		font-size: clamp(30px, 4.4vw, 52px);
+		font-weight: 800;
+		line-height: 1.08;
+		letter-spacing: -0.025em;
+	}
+	.hl {
+		padding: 0 6px;
+		background: var(--bn-amarillo);
+		-webkit-box-decoration-break: clone;
+		box-decoration-break: clone;
+	}
+
+	.block {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		padding-top: 32px;
+		border-top: 3px solid var(--bn-negro);
+	}
+	.block :global(.narrow) {
+		max-width: 68ch;
+	}
+
+	/* Principios */
+	.principios {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+		gap: 16px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.principio {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 22px;
+		background: var(--bn-gris-100);
+		box-shadow: inset 0 6px 0 var(--bn-amarillo);
+	}
+	.num {
+		font-size: 14px;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		color: var(--bn-gris-600);
+	}
+	.principio h3 {
+		font-size: 21px;
+		font-weight: 800;
+		line-height: 1.15;
+		letter-spacing: -0.01em;
+	}
+	.principio p {
+		font-size: 15px;
+		line-height: 1.5;
+	}
+
+	/* Denuncias */
+	.split {
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 32px 48px;
+		align-items: flex-start;
+	}
+	.split-text {
+		flex: 1 1 380px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+	}
+	.pasos {
+		flex: 1 1 380px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		margin: 0;
+		padding: 8px 28px;
+		list-style: none;
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.paso {
+		display: flex;
+		gap: 16px;
+		padding: 20px 0;
+	}
+	.paso + .paso {
+		border-top: 1px solid var(--bn-gris-600);
+	}
+	.paso-icon {
+		flex-shrink: 0;
+		display: grid;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+		border-radius: var(--radius-s);
+	}
+	.paso h3 {
+		font-size: 19px;
+		font-weight: 800;
+		line-height: 1.2;
+	}
+	.paso p {
+		margin-top: 4px;
+		font-size: 15px;
+		line-height: 1.5;
+		color: var(--bn-gris-200);
+	}
+
+	@media (max-width: 720px) {
+		.block {
+			padding-top: 24px;
+		}
+		.pasos {
+			margin-inline: calc(var(--gutter) * -1);
+			padding: 4px var(--gutter);
+		}
+	}
+</style>

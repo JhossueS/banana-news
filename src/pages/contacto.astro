@@ -1,0 +1,375 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import Icon, { type IconName } from '../components/Icon.astro';
+import { site } from '../data/site';
+
+const canales: { icon: IconName; titulo: string; texto: string; correo?: string; href?: string; enlace?: string }[] = [
+	{ icon: 'file-text', titulo: 'Redacción', texto: 'Datos, propuestas de temas y comunicados.', correo: site.correos.redaccion },
+	{ icon: 'briefcase', titulo: 'Publicidad', texto: 'Formatos, tarifas y kit de medios.', correo: site.correos.publicidad },
+	{ icon: 'shield-check', titulo: 'Correcciones y rectificaciones', texto: 'Si una nota tiene un error, indícanos cuál y en qué enlace.', correo: site.correos.correcciones },
+	{ icon: 'megaphone', titulo: 'Denuncias ciudadanas', texto: 'Para denunciar un hecho, usa el formulario de la portada. Puede ser anónimo.', href: '/#denuncias', enlace: 'Enviar una denuncia' },
+];
+
+const asuntos = [
+	{ value: 'redaccion', label: 'Redacción' },
+	{ value: 'publicidad', label: 'Publicidad' },
+	{ value: 'correccion', label: 'Corrección o rectificación' },
+	{ value: 'datos', label: 'Mis datos personales' },
+	{ value: 'otro', label: 'Otro' },
+];
+---
+
+<PageLayout title="Contacto" group="El medio" deck="Escríbenos. Respondemos todos los mensajes en días hábiles.">
+	<div class="grid">
+		<section class="canales" aria-labelledby="h-canales">
+			<h2 id="h-canales" class="sr-only">Canales</h2>
+			<ul>
+				{
+					canales.map((c) => (
+						<li class="canal">
+							<span class="canal-icon">
+								<Icon name={c.icon} size={20} />
+							</span>
+							<div class="canal-body">
+								<h3>{c.titulo}</h3>
+								<p>{c.texto}</p>
+								{c.correo && (
+									<a class="canal-link" href={`mailto:${c.correo}`}>
+										{c.correo}
+									</a>
+								)}
+								{c.href && (
+									<a class="canal-link" href={c.href}>
+										{c.enlace}
+										<Icon name="arrow-right" size={16} />
+									</a>
+								)}
+							</div>
+						</li>
+					))
+				}
+			</ul>
+			<dl class="datos">
+				<div>
+					<dt>Horario</dt>
+					<dd>{site.horario}</dd>
+				</div>
+				<div>
+					<dt>Teléfono</dt>
+					<dd>{site.telefono}</dd>
+				</div>
+				<div>
+					<dt>Dirección</dt>
+					<dd>{site.domicilio}</dd>
+				</div>
+			</dl>
+		</section>
+
+		<section class="panel" aria-labelledby="h-form">
+			<h2 id="h-form" class="form-title">Envíanos un mensaje</h2>
+			<form class="form" id="form-contacto" novalidate>
+				<div class="row">
+					<label class="field">
+						<span>Nombre</span>
+						<input type="text" name="nombre" required autocomplete="name" />
+					</label>
+					<label class="field">
+						<span>Correo electrónico</span>
+						<input type="email" name="correo" required autocomplete="email" inputmode="email" />
+					</label>
+				</div>
+				<label class="field">
+					<span>Asunto</span>
+					<select name="asunto" id="asunto" required>
+						{asuntos.map((a) => <option value={a.value}>{a.label}</option>)}
+					</select>
+				</label>
+				<label class="field">
+					<span>Mensaje</span>
+					<textarea name="mensaje" rows="6" required minlength="15"></textarea>
+				</label>
+				<label class="check">
+					<input type="checkbox" name="acepto" required />
+					<span>
+						Acepto que Banana News use estos datos solo para responder mi mensaje, según los
+						<a href="/terminos-y-condiciones/">términos y condiciones</a>.
+					</span>
+				</label>
+				<div class="actions">
+					<button type="submit" class="btn">
+						Enviar mensaje
+						<Icon name="arrow-right" size={18} />
+					</button>
+				</div>
+				<p class="status" id="contacto-status" role="status" aria-live="polite"></p>
+			</form>
+		</section>
+	</div>
+</PageLayout>
+
+<style>
+	.grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 40px 56px;
+		align-items: flex-start;
+	}
+
+	/* Canales */
+	.canales {
+		flex: 1 1 360px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 32px;
+	}
+	.canales ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		border-top: 3px solid var(--bn-negro);
+	}
+	.canal {
+		display: flex;
+		gap: 16px;
+		padding: 20px 0;
+		border-bottom: 1px solid var(--line-soft);
+	}
+	.canal-icon {
+		flex-shrink: 0;
+		display: grid;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		background: var(--bn-amarillo);
+		border-radius: var(--radius-s);
+	}
+	.canal-body {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 4px;
+	}
+	.canal h3 {
+		font-size: 19px;
+		font-weight: 800;
+		line-height: 1.2;
+	}
+	.canal p {
+		font-size: 15px;
+		line-height: 1.45;
+		color: var(--bn-gris-600);
+	}
+	.canal-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 32px;
+		font-size: 15px;
+		font-weight: 700;
+		text-decoration-color: var(--bn-amarillo-700);
+		overflow-wrap: anywhere;
+	}
+	.canal-link:hover {
+		text-decoration-color: var(--bn-negro);
+	}
+	.datos {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		margin: 0;
+	}
+	.datos dt {
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--bn-gris-600);
+	}
+	.datos dd {
+		margin: 2px 0 0;
+		font-size: 15px;
+		font-weight: 600;
+	}
+
+	/* Formulario */
+	.panel {
+		flex: 1.3 1 440px;
+		min-width: 0;
+		padding: clamp(24px, 4vw, 36px);
+		background: var(--bn-gris-100);
+		box-shadow: inset 0 6px 0 var(--bn-negro);
+	}
+	.form-title {
+		font-size: clamp(24px, 2.6vw, 28px);
+		font-weight: 800;
+		line-height: 1.1;
+		letter-spacing: -0.015em;
+	}
+	.form {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		margin-top: 20px;
+	}
+	.row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 16px;
+	}
+	.row .field {
+		flex: 1 1 200px;
+	}
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 700;
+	}
+	.field input,
+	.field select,
+	.field textarea {
+		width: 100%;
+		padding: 12px 14px;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: var(--bn-hueso);
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+		font-size: 16px;
+		font-weight: 500;
+		line-height: 1.4;
+	}
+	.field input,
+	.field select {
+		min-height: 48px;
+		padding-block: 0;
+	}
+	.field textarea {
+		resize: vertical;
+	}
+	.field input:focus-visible,
+	.field select:focus-visible,
+	.field textarea:focus-visible {
+		outline: 3px solid var(--bn-amarillo);
+		outline-offset: 0;
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+	}
+	[aria-invalid='true'] {
+		box-shadow: inset 0 0 0 3px var(--bn-coral-700) !important;
+	}
+	.check {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		font-size: 14px;
+		line-height: 1.45;
+	}
+	.check input {
+		flex-shrink: 0;
+		width: 20px;
+		height: 20px;
+		margin: 1px 0 0;
+		accent-color: var(--bn-negro);
+	}
+	.check[data-invalid] {
+		color: var(--bn-coral-700);
+	}
+	.check a {
+		font-weight: 700;
+	}
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		min-height: 48px;
+		padding: 0 22px;
+		border: 0;
+		border-radius: var(--radius-s);
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+		font-size: 15px;
+		font-weight: 800;
+	}
+	.btn:hover {
+		background: var(--bn-negro-700);
+	}
+	.btn:active {
+		opacity: 0.85;
+	}
+	.btn :global(svg) {
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+	.btn:hover :global(svg) {
+		transform: translateX(4px);
+	}
+	.status {
+		min-height: 1.4em;
+		font-size: 15px;
+		font-weight: 700;
+		line-height: 1.4;
+	}
+	.status[data-kind='error'] {
+		color: var(--bn-coral-700);
+	}
+	.status[data-kind='ok'] {
+		padding: 12px 14px;
+		background: var(--bn-amarillo);
+		border-radius: var(--radius-xs);
+	}
+
+	@media (max-width: 720px) {
+		.panel {
+			margin-inline: calc(var(--gutter) * -1);
+			padding: 28px var(--gutter);
+		}
+		.btn {
+			width: 100%;
+		}
+	}
+</style>
+
+<script>
+	const form = document.getElementById('form-contacto') as HTMLFormElement | null;
+	const status = document.getElementById('contacto-status');
+	const asunto = document.getElementById('asunto') as HTMLSelectElement | null;
+
+	// /contacto/?asunto=publicidad llega con el asunto elegido
+	const pedido = new URLSearchParams(location.search).get('asunto');
+	if (asunto && pedido && Array.from(asunto.options).some((o) => o.value === pedido)) asunto.value = pedido;
+
+	const say = (msg: string, kind: 'ok' | 'error') => {
+		if (!status) return;
+		status.textContent = msg;
+		status.dataset.kind = kind;
+	};
+
+	const mensajes: Record<string, string> = {
+		nombre: 'Escribe tu nombre.',
+		correo: 'Escribe un correo válido para poder responderte.',
+		mensaje: 'Cuéntanos un poco más: al menos una frase completa.',
+		acepto: 'Necesitamos tu autorización para responderte.',
+	};
+
+	form?.addEventListener('submit', (e) => {
+		e.preventDefault();
+		const fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[required]'));
+		fields.forEach((f) => {
+			f.removeAttribute('aria-invalid');
+			f.closest('.check')?.removeAttribute('data-invalid');
+		});
+		const bad = fields.find((f) => !f.checkValidity());
+		if (bad) {
+			bad.setAttribute('aria-invalid', 'true');
+			bad.closest('.check')?.setAttribute('data-invalid', '');
+			bad.focus();
+			say(mensajes[bad.name] ?? 'Revisa los campos marcados.', 'error');
+			return;
+		}
+		// Sin servicio de recepción conectado todavía: confirmación local.
+		form.reset();
+		say('Recibimos tu mensaje. Te responderemos a tu correo en días hábiles.', 'ok');
+	});
+</script>

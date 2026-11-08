@@ -1,0 +1,34 @@
+---
+/** Título de sección con la barra amarilla de la marca. */
+interface Props {
+	id: string;
+	tag?: 'h2' | 'h3';
+}
+const { id, tag: Tag = 'h2' } = Astro.props;
+---
+
+<div class="section-title">
+	<Tag {id} class="h">
+		<slot />
+	</Tag>
+	<span class="underline" aria-hidden="true"></span>
+</div>
+
+<style>
+	.section-title {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.h {
+		font-size: clamp(28px, 3.2vw, 36px);
+		font-weight: 800;
+		line-height: 1.06;
+		letter-spacing: -0.015em;
+	}
+	.underline {
+		width: 48px;
+		height: 6px;
+		background: var(--bn-amarillo);
+	}
+</style>

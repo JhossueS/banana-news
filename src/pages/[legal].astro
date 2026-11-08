@@ -1,0 +1,222 @@
+---
+/** Páginas legales: /terminos-y-condiciones/ y /aviso-legal/ */
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import PageLayout from '../layouts/PageLayout.astro';
+import Prose from '../components/Prose.astro';
+import { site, paginasLegales } from '../data/site';
+
+export async function getStaticPaths() {
+	const paginas = await getCollection('legal');
+	return paginas.map((pagina) => ({ params: { legal: pagina.id }, props: { pagina } }));
+}
+
+interface Props {
+	pagina: CollectionEntry<'legal'>;
+}
+
+const { pagina } = Astro.props;
+const p = pagina.data;
+const { Content, headings } = await render(pagina);
+const indice = headings.filter((h) => h.depth === 2);
+
+const actualizado = new Intl.DateTimeFormat('es-EC', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(p.actualizado);
+const otras = paginasLegales.filter((l) => l.href !== `/${pagina.id}/`);
+
+const titular = [
+	{ dt: 'Titular', dd: site.razonSocial },
+	{ dt: 'Nombre comercial', dd: site.nombre },
+	{ dt: 'RUC', dd: site.ruc },
+	{ dt: 'Domicilio', dd: site.domicilio },
+	{ dt: 'Contacto', dd: site.correos.redaccion, mail: true },
+	{ dt: 'Datos personales', dd: site.correos.datos, mail: true },
+];
+---
+
+<PageLayout title={p.titulo} group="Legal" deck={p.bajada}>
+	<div class="layout">
+		<aside class="toc" aria-labelledby="h-indice">
+			<p class="updated">Última actualización: <time datetime={p.actualizado.toISOString().slice(0, 10)}>{actualizado}</time></p>
+			<nav aria-labelledby="h-indice">
+				<h2 id="h-indice" class="toc-title">En esta página</h2>
+				<ol>
+					{
+						indice.map((h) => (
+							<li>
+								<a href={`#${h.slug}`}>{h.text}</a>
+							</li>
+						))
+					}
+				</ol>
+			</nav>
+			{
+				otras.map((o) => (
+					<a class="other" href={o.href}>
+						Ver también: {o.label}
+					</a>
+				))
+			}
+		</aside>
+
+		<div class="body">
+			{
+				p.titular && (
+					<section class="titular" aria-labelledby="h-titular">
+						<h2 id="h-titular">Datos del titular</h2>
+						<dl>
+							{titular.map((t) => (
+								<div>
+									<dt>{t.dt}</dt>
+									<dd>{t.mail ? <a href={`mailto:${t.dd}`}>{t.dd}</a> : t.dd}</dd>
+								</div>
+							))}
+						</dl>
+					</section>
+				)
+			}
+			<Prose>
+				<Content />
+			</Prose>
+		</div>
+	</div>
+</PageLayout>
+
+<style>
+	.layout {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 32px 64px;
+		align-items: flex-start;
+	}
+
+	/* Índice */
+	.toc {
+		flex: 1 1 240px;
+		max-width: 300px;
+		position: sticky;
+		top: 24px;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+	.updated {
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+	}
+	.toc-title {
+		margin-bottom: 8px;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--bn-gris-600);
+	}
+	.toc ol {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		border-left: 3px solid var(--line-soft);
+	}
+	.toc li a {
+		display: flex;
+		align-items: center;
+		min-height: 36px;
+		margin-left: -3px;
+		padding: 4px 0 4px 14px;
+		border-left: 3px solid transparent;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1.3;
+		text-decoration: none;
+		transition: border-color var(--dur-fast) var(--ease-out);
+	}
+	.toc li a:hover {
+		border-left-color: var(--bn-gris-400);
+	}
+	.toc li a[aria-current] {
+		border-left-color: var(--bn-amarillo);
+		font-weight: 800;
+	}
+	.other {
+		font-size: 14px;
+		font-weight: 700;
+		text-decoration-color: var(--bn-amarillo-700);
+	}
+
+	.body {
+		flex: 999 1 560px;
+		min-width: 0;
+		max-width: 720px;
+		display: flex;
+		flex-direction: column;
+		gap: 40px;
+	}
+
+	/* Datos del titular */
+	.titular {
+		padding: 22px 24px;
+		background: var(--bn-gris-100);
+		box-shadow: inset 6px 0 0 var(--bn-amarillo);
+	}
+	.titular h2 {
+		margin-bottom: 14px;
+		font-size: 14px;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+	.titular dl {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+		gap: 14px 24px;
+		margin: 0;
+	}
+	.titular dt {
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--bn-gris-600);
+	}
+	.titular dd {
+		margin: 2px 0 0;
+		font-size: 15px;
+		font-weight: 600;
+		overflow-wrap: anywhere;
+	}
+	.titular a {
+		text-decoration-color: var(--bn-amarillo-700);
+	}
+
+	@media (max-width: 860px) {
+		.toc {
+			position: static;
+			max-width: none;
+			padding: 18px;
+			background: var(--bn-gris-100);
+		}
+		.toc ol {
+			border-left-color: var(--bn-gris-200);
+		}
+	}
+</style>
+
+<script>
+	// Marca en el índice la sección que se está leyendo
+	const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('.toc li a'));
+	const targets = links.map((a) => document.getElementById(decodeURIComponent(a.hash.slice(1)))).filter((el): el is HTMLElement => !!el);
+	if ('IntersectionObserver' in window && targets.length) {
+		const io = new IntersectionObserver(
+			(entries) => {
+				const visible = entries.find((e) => e.isIntersecting);
+				if (!visible) return;
+				links.forEach((a) => {
+					if (decodeURIComponent(a.hash.slice(1)) === visible.target.id) a.setAttribute('aria-current', 'true');
+					else a.removeAttribute('aria-current');
+				});
+			},
+			{ rootMargin: '0px 0px -75% 0px' },
+		);
+		targets.forEach((t) => io.observe(t));
+	}
+</script>

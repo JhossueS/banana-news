@@ -1,22 +1,23 @@
 ---
 import Logo from './Logo.astro';
+import { paginasMedio, paginasLegales } from '../data/site';
 
 const cols = [
 	{
 		title: 'Secciones',
 		links: [
-			{ label: 'Noticias', href: '#noticias' },
-			{ label: 'Denuncias', href: '#denuncias' },
-			{ label: 'Empleos', href: '#empleos' },
+			{ label: 'Noticias', href: '/#noticias' },
+			{ label: 'Denuncias', href: '/#denuncias' },
+			{ label: 'Empleos', href: '/#empleos' },
 		],
 	},
 	{
 		title: 'Medio',
-		links: [
-			{ label: 'Quiénes somos', href: '#' },
-			{ label: 'Publicidad', href: '#' },
-			{ label: 'Contacto', href: '#' },
-		],
+		links: paginasMedio,
+	},
+	{
+		title: 'Legal',
+		links: paginasLegales,
 	},
 ];
 

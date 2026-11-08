@@ -1,0 +1,358 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import SectionTitle from '../components/SectionTitle.astro';
+import Icon from '../components/Icon.astro';
+import { site } from '../data/site';
+
+/** `w` y `h` dibujan la proporción del formato en la tarjeta */
+const formatos = [
+	{ nombre: 'Media página', medida: '300 × 600', donde: 'Escritorio · junto a la sección de denuncias', w: 300, h: 600 },
+	{ nombre: 'Rectángulo', medida: '300 × 250', donde: 'Escritorio y móvil · columna lateral de cada nota', w: 300, h: 250 },
+	{ nombre: 'Banner móvil', medida: '320 × 100', donde: 'Móvil · portada, antes de las denuncias', w: 320, h: 100 },
+];
+
+const reglas = [
+	'Toda la publicidad va identificada con la palabra «Publicidad».',
+	'El contenido patrocinado se marca como tal y nunca se presenta como nota de la redacción.',
+	'Los anunciantes no intervienen en las decisiones editoriales.',
+	'No aceptamos anuncios engañosos, ilegales o que imiten noticias.',
+];
+
+const pasos = [
+	{ titulo: 'Escríbenos', texto: 'Cuéntanos qué quieres comunicar, a quién y en qué fechas.' },
+	{ titulo: 'Recibe una propuesta', texto: 'Te enviamos formatos, ubicaciones y tarifas según tu objetivo.' },
+	{ titulo: 'Publicamos', texto: 'Revisamos las piezas, las ponemos en línea y te compartimos resultados.' },
+];
+---
+
+<PageLayout
+	title="Publicidad"
+	group="El medio"
+	deck="Lleva tu marca a lectores de todo Ecuador, en un medio que cuida a su audiencia y separa con claridad la publicidad de la información."
+>
+	<section class="block" aria-labelledby="h-formatos">
+		<SectionTitle id="h-formatos">Formatos</SectionTitle>
+		<ul class="formatos">
+			{
+				formatos.map((f) => (
+					<li class="formato">
+						<div class="preview" aria-hidden="true">
+							<span class="shape" style={`aspect-ratio: ${f.w} / ${f.h}; ${f.w >= f.h ? 'width: 86%' : 'height: 86%'}`}>
+								{f.medida}
+							</span>
+						</div>
+						<div class="formato-body">
+							<h3>{f.nombre}</h3>
+							<p class="medida">{f.medida} px</p>
+							<p class="donde">{f.donde}</p>
+						</div>
+					</li>
+				))
+			}
+			<li class="formato formato--patrocinado">
+				<div class="preview" aria-hidden="true">
+					<span class="mock">
+						<span class="mock-tag">Patrocinado</span>
+						<span class="mock-line" />
+						<span class="mock-line short" />
+					</span>
+				</div>
+				<div class="formato-body">
+					<h3>Contenido patrocinado</h3>
+					<p class="medida">Nota de marca</p>
+					<p class="donde">Escrita con tu marca, publicada con la etiqueta «Patrocinado».</p>
+				</div>
+			</li>
+		</ul>
+	</section>
+
+	<section class="block split" aria-labelledby="h-reglas">
+		<div class="split-col">
+			<SectionTitle id="h-reglas">Nuestras reglas</SectionTitle>
+			<p class="intro">La confianza de nuestros lectores es lo que hace valiosa tu publicidad. Por eso:</p>
+		</div>
+		<ul class="reglas">
+			{
+				reglas.map((r) => (
+					<li>
+						<Icon name="check" size={20} stroke={3} />
+						<span>{r}</span>
+					</li>
+				))
+			}
+		</ul>
+	</section>
+
+	<section class="block" aria-labelledby="h-como">
+		<SectionTitle id="h-como">Cómo anunciar</SectionTitle>
+		<ol class="pasos">
+			{
+				pasos.map((p, i) => (
+					<li class="paso">
+						<span class="paso-n" aria-hidden="true">
+							{i + 1}
+						</span>
+						<h3>{p.titulo}</h3>
+						<p>{p.texto}</p>
+					</li>
+				))
+			}
+		</ol>
+	</section>
+
+	<section class="contact on-dark" aria-labelledby="h-contacto">
+		<div>
+			<h2 id="h-contacto" class="contact-title">Hablemos de tu campaña</h2>
+			<p class="contact-text">Pide nuestro kit de medios con tarifas y datos de audiencia.</p>
+		</div>
+		<div class="contact-actions">
+			<a class="btn btn--primary" href="/contacto/?asunto=publicidad">
+				Escribir al equipo comercial
+				<Icon name="arrow-right" size={18} />
+			</a>
+			<a class="mail" href={`mailto:${site.correos.publicidad}`}>{site.correos.publicidad}</a>
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	.block {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		padding-top: 32px;
+		border-top: 3px solid var(--bn-negro);
+	}
+
+	/* Formatos */
+	.formatos {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+		gap: 16px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.formato {
+		display: flex;
+		flex-direction: column;
+		background: var(--bn-hueso);
+		box-shadow: inset 0 0 0 1px var(--line-soft);
+	}
+	.preview {
+		display: grid;
+		place-items: center;
+		height: 200px;
+		background: var(--bn-gris-100);
+	}
+	.shape {
+		display: grid;
+		place-items: center;
+		max-width: 86%;
+		max-height: 86%;
+		background: var(--bn-amarillo);
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+		font-size: 12px;
+		font-weight: 800;
+	}
+	.mock {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		width: 70%;
+		padding: 16px;
+		background: var(--bn-hueso);
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+	}
+	.mock-tag {
+		align-self: flex-start;
+		padding: 3px 6px;
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+		font-size: 10px;
+		font-weight: 800;
+		text-transform: uppercase;
+		border-radius: var(--radius-xs);
+	}
+	.mock-line {
+		height: 10px;
+		background: var(--bn-gris-200);
+	}
+	.mock-line.short {
+		width: 60%;
+	}
+	.formato-body {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 18px;
+	}
+	.formato h3 {
+		font-size: 20px;
+		font-weight: 800;
+		line-height: 1.15;
+	}
+	.medida {
+		font-size: 14px;
+		font-weight: 700;
+	}
+	.donde {
+		font-size: 14px;
+		line-height: 1.45;
+		color: var(--bn-gris-600);
+	}
+
+	/* Reglas */
+	.split {
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 24px 48px;
+	}
+	.split-col {
+		flex: 1 1 320px;
+		display: flex;
+		flex-direction: column;
+		gap: 18px;
+	}
+	.intro {
+		max-width: 40ch;
+		font-size: 18px;
+		line-height: 1.5;
+	}
+	.reglas {
+		flex: 1.4 1 400px;
+		min-width: 0;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.reglas li {
+		display: flex;
+		gap: 12px;
+		padding: 14px 0;
+		font-size: 17px;
+		font-weight: 600;
+		line-height: 1.4;
+		border-bottom: 1px solid var(--line-soft);
+	}
+	.reglas li:first-child {
+		padding-top: 0;
+	}
+	.reglas :global(svg) {
+		margin-top: 1px;
+	}
+
+	/* Pasos */
+	.pasos {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+		gap: 16px 32px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.paso {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.paso-n {
+		display: grid;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		margin-bottom: 4px;
+		background: var(--bn-negro);
+		color: var(--bn-amarillo);
+		font-size: 20px;
+		font-weight: 800;
+		border-radius: var(--radius-s);
+	}
+	.paso h3 {
+		font-size: 20px;
+		font-weight: 800;
+	}
+	.paso p {
+		font-size: 15px;
+		line-height: 1.5;
+		color: var(--bn-gris-600);
+	}
+
+	/* Contacto comercial */
+	.contact {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 24px 40px;
+		padding: clamp(24px, 4vw, 40px);
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.contact-title {
+		font-size: clamp(26px, 3vw, 34px);
+		font-weight: 800;
+		line-height: 1.08;
+		letter-spacing: -0.015em;
+	}
+	.contact-text {
+		margin-top: 8px;
+		font-size: 16px;
+		color: var(--bn-gris-200);
+	}
+	.contact-actions {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+	}
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		min-height: 48px;
+		padding: 0 20px;
+		border-radius: var(--radius-s);
+		font-size: 15px;
+		font-weight: 800;
+		text-decoration: none;
+	}
+	.btn--primary {
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+	}
+	.btn--primary:hover {
+		background: var(--bn-amarillo-300);
+	}
+	.btn :global(svg) {
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+	.btn:hover :global(svg) {
+		transform: translateX(4px);
+	}
+	.mail {
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--bn-gris-200);
+		text-decoration-color: var(--bn-amarillo);
+		overflow-wrap: anywhere;
+	}
+
+	@media (max-width: 720px) {
+		.block {
+			padding-top: 24px;
+		}
+		.preview {
+			height: 160px;
+		}
+		.contact {
+			margin-inline: calc(var(--gutter) * -1);
+			padding: 32px var(--gutter);
+		}
+		.contact-actions,
+		.btn {
+			width: 100%;
+		}
+	}
+</style>
