@@ -1,0 +1,44 @@
+---
+interface Props {
+	items: { label: string; href?: string }[];
+}
+const { items } = Astro.props;
+---
+
+<nav class="crumbs" aria-label="Ruta">
+	<ol>
+		<li><a href="/">Inicio</a></li>
+		{items.map((it) => <li aria-current={it.href ? undefined : 'page'}>{it.href ? <a href={it.href}>{it.label}</a> : it.label}</li>)}
+	</ol>
+</nav>
+
+<style>
+	ol {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+	}
+	li + li::before {
+		content: '/';
+		margin-right: 4px;
+		color: var(--bn-gris-400);
+	}
+	a {
+		text-decoration: none;
+	}
+	a:hover {
+		text-decoration: underline;
+		text-decoration-color: var(--bn-amarillo);
+		text-decoration-thickness: 3px;
+	}
+	[aria-current] {
+		color: var(--bn-negro);
+		font-weight: 700;
+	}
+</style>

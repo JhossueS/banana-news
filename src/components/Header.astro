@@ -11,6 +11,12 @@ const hoy = new Intl.DateTimeFormat('es-EC', {
 }).format(new Date());
 const fecha = hoy.charAt(0).toUpperCase() + hoy.slice(1);
 
+interface Props {
+	/** Sección marcada en la navegación; `null` en páginas que no pertenecen a ninguna */
+	current?: 'noticias' | 'denuncias' | 'empleos' | null;
+}
+const { current = 'noticias' } = Astro.props;
+
 const sections = [
 	{ id: 'noticias', label: 'Noticias' },
 	{ id: 'denuncias', label: 'Denuncias' },
@@ -21,7 +27,7 @@ const sections = [
 <div class="topbar">
 	<div class="wrap topbar-inner">
 		<span><time id="fecha" datetime={new Date().toISOString().slice(0, 10)}>{fecha}</time> · Ecuador</span>
-		<a href="#denuncias" class="topbar-link on-dark">
+		<a href="/#denuncias" class="topbar-link on-dark">
 			<Icon name="megaphone" size={16} />
 			Envía tu denuncia
 		</a>
@@ -42,16 +48,16 @@ const sections = [
 	<div class="wrap nav-inner">
 		<ul class="nav-list">
 			{
-				sections.map((s, i) => (
+				sections.map((s) => (
 					<li>
-						<a href={`#${s.id}`} data-section={s.id} aria-current={i === 0 ? 'true' : undefined}>
+						<a href={`/#${s.id}`} data-section={s.id} aria-current={s.id === current ? 'true' : undefined}>
 							{s.label}
 						</a>
 					</li>
 				))
 			}
 		</ul>
-		<a href="#mapa" class="cta">
+		<a href="/#mapa" class="cta">
 			<Icon name="map-pin" size={18} />
 			Crear noticia en el mapa
 		</a>
