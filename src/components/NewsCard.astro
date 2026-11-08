@@ -1,0 +1,215 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import Tag from './Tag.astro';
+import Icon from './Icon.astro';
+
+interface Props {
+	variant?: 'principal' | 'horizontal';
+	image: ImageMetadata;
+	alt: string;
+	title: string;
+	deck?: string;
+	/** Etiqueta de sección sobre la foto (principal) */
+	tag?: string;
+	/** Sección en texto (horizontal) */
+	kicker?: string;
+	href?: string;
+	/** La primera imagen visible se carga con prioridad */
+	priority?: boolean;
+	class?: string;
+}
+const { variant = 'principal', image, alt, title, deck, tag, kicker, href = '#', priority = false, class: className } = Astro.props;
+---
+
+{
+	variant === 'principal' ? (
+		<article class:list={['card', 'principal', className]}>
+			<Image
+				src={image}
+				alt={alt}
+				class="photo"
+				widths={[640, 960, 1280, 1600]}
+				sizes="(min-width: 1024px) 60vw, 100vw"
+				loading={priority ? 'eager' : 'lazy'}
+				fetchpriority={priority ? 'high' : 'auto'}
+			/>
+			<div class="scrim" aria-hidden="true" />
+			<div class="body">
+				{tag && <Tag size="md">{tag}</Tag>}
+				<h3 class="title">
+					<a class="stretch" {href}>
+						{title}
+					</a>
+				</h3>
+				{deck && <p class="deck">{deck}</p>}
+				<span class="rule" aria-hidden="true" />
+			</div>
+		</article>
+	) : (
+		<article class:list={['card', 'horizontal', className]}>
+			<div class="thumb">
+				<Image src={image} alt={alt} class="photo" widths={[240, 360, 480]} sizes="(min-width: 1024px) 180px, 40vw" loading="lazy" />
+			</div>
+			<div class="body">
+				{kicker && <span class="kicker">{kicker}</span>}
+				<h3 class="title">
+					<a class="stretch" {href}>
+						{title}
+					</a>
+				</h3>
+				{deck && <p class="deck">{deck}</p>}
+				<Icon name="arrow-right" size={20} class="arrow" />
+			</div>
+		</article>
+	)
+}
+
+<style>
+	.card {
+		position: relative;
+	}
+	.title {
+		font-weight: 800;
+		line-height: 1.04;
+		letter-spacing: -0.02em;
+	}
+	.stretch {
+		color: inherit;
+		text-decoration: none;
+		text-decoration-color: var(--bn-amarillo);
+		text-decoration-thickness: 0.12em;
+		text-underline-offset: 0.14em;
+	}
+	/* Toda la tarjeta es el enlace */
+	.stretch::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+	.stretch:focus-visible {
+		outline: none;
+		box-shadow: none;
+	}
+	.card:has(.stretch:focus-visible) {
+		outline: 3px solid var(--bn-negro);
+		outline-offset: 3px;
+		box-shadow: 0 0 0 3px var(--bn-amarillo);
+	}
+	.card:hover .stretch {
+		text-decoration-line: underline;
+	}
+	.card :global(.arrow) {
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+	.card:hover :global(.arrow) {
+		transform: translateX(4px);
+	}
+	.card:active {
+		opacity: 0.85;
+	}
+
+	/* ── Principal: foto, velo y texto hueso ── */
+	.principal {
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		min-height: 420px;
+		overflow: hidden;
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.principal .photo {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.scrim {
+		position: absolute;
+		inset: 0;
+		background: var(--scrim-bottom);
+	}
+	.principal .body {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+		padding: clamp(20px, 3vw, 28px);
+	}
+	.principal .title {
+		font-size: clamp(30px, 4.2vw, 48px);
+		max-width: 18ch;
+	}
+	.principal .deck {
+		font-size: 16px;
+		line-height: 1.4;
+		max-width: 48ch;
+	}
+	.rule {
+		width: 48px;
+		height: 6px;
+		margin-top: 4px;
+		background: var(--bn-amarillo);
+	}
+
+	/* ── Horizontal: foto + texto ── */
+	.horizontal {
+		display: grid;
+		grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+		gap: 16px;
+		padding: 8px;
+		background: var(--bn-hueso);
+		box-shadow: inset 0 0 0 1px var(--line-soft);
+		border-radius: var(--radius-xs);
+	}
+	.thumb {
+		position: relative;
+		min-height: 120px;
+		overflow: hidden;
+	}
+	.horizontal .photo {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.horizontal .body {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 6px;
+		padding: 6px 8px 4px 0;
+	}
+	.kicker {
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+	}
+	.horizontal .title {
+		font-size: 20px;
+	}
+	.horizontal .deck {
+		font-size: 13px;
+		line-height: 1.4;
+		color: var(--bn-gris-600);
+	}
+	.horizontal .body :global(.arrow) {
+		margin-top: auto;
+	}
+	@media (max-width: 480px) {
+		.principal {
+			min-height: 400px;
+		}
+		.horizontal .title {
+			font-size: 18px;
+		}
+		.horizontal .deck {
+			display: none;
+		}
+	}
+</style>

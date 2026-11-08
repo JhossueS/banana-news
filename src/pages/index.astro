@@ -1,11 +1,226 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import InfoBar from '../components/InfoBar.astro';
+import NewsCard from '../components/NewsCard.astro';
+import ReportSection from '../components/ReportSection.astro';
+import NewsMap from '../components/NewsMap.astro';
+import Icon from '../components/Icon.astro';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import quito from '../assets/photos/quito-centro.jpg';
+import asamblea from '../assets/photos/asamblea-pleno.jpg';
+import economia from '../assets/photos/economia-oficina.jpg';
+import votacion from '../assets/photos/votacion.jpg';
 ---
 
 <Layout>
-	<Welcome />
+	<Header />
+
+	<main id="contenido" class="wrap main">
+		<InfoBar kind="ultima-hora" href="#mapa">El Cotopaxi mantiene actividad moderada; autoridades monitorean la situación.</InfoBar>
+
+		<section id="noticias" class="news" aria-labelledby="h-noticias">
+			<div class="section-head">
+				<div class="section-title">
+					<h2 id="h-noticias" class="h2">Noticias</h2>
+					<span class="underline" aria-hidden="true"></span>
+				</div>
+				<a href="#" class="see-all">
+					Ver todas
+					<Icon name="arrow-right" size={18} />
+				</a>
+			</div>
+			<div class="news-grid">
+				<NewsCard
+					class="news-main"
+					variant="principal"
+					image={quito}
+					alt="Calle del centro histórico de Quito con fachadas coloniales"
+					tag="CIUDAD"
+					title="Quito redefine la agenda urbana"
+					deck="Conoce qué cambia en el centro histórico y a quiénes afecta."
+					priority
+				/>
+				<div class="news-side">
+					<NewsCard
+						variant="horizontal"
+						image={asamblea}
+						alt="Pleno de la Asamblea Nacional durante una sesión"
+						kicker="Política"
+						title="¿Qué aprobó la Asamblea?"
+						deck="Las claves de la sesión, punto por punto."
+					/>
+					<NewsCard
+						variant="horizontal"
+						image={economia}
+						alt="Personas trabajando en una oficina"
+						kicker="Economía"
+						title="¿A dónde va la economía de Ecuador?"
+						deck="Datos y contexto para entender el trimestre."
+					/>
+					<NewsCard
+						variant="horizontal"
+						image={votacion}
+						alt="Ciudadanos votando en una urna"
+						kicker="Ecuador"
+						title="Lo que debes saber hoy"
+						deck="Cinco temas que marcan la agenda del país."
+					/>
+				</div>
+			</div>
+		</section>
+
+		<ReportSection />
+
+		<NewsMap />
+
+		<section id="empleos" class="jobs" aria-labelledby="h-empleos">
+			<div class="jobs-text">
+				<h2 id="h-empleos" class="jobs-title">Ofertas de trabajo en todo Ecuador</h2>
+			</div>
+			<a href="#" class="jobs-cta">
+				Ver ofertas
+				<Icon name="arrow-right" size={18} />
+			</a>
+		</section>
+	</main>
+
+	<Footer />
 </Layout>
+
+<style>
+	.main {
+		display: flex;
+		flex-direction: column;
+		gap: 56px;
+		padding-top: 24px;
+	}
+
+	/* Noticias */
+	.news {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+	.section-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 12px 16px;
+	}
+	.section-title {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.h2 {
+		font-size: clamp(28px, 3.2vw, 36px);
+		font-weight: 800;
+		line-height: 1.06;
+		letter-spacing: -0.015em;
+	}
+	.underline {
+		width: 48px;
+		height: 6px;
+		background: var(--bn-amarillo);
+	}
+	.see-all {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		font-size: 14px;
+		font-weight: 700;
+		text-decoration: none;
+	}
+	.see-all :global(svg) {
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+	.see-all:hover {
+		text-decoration: underline;
+		text-decoration-color: var(--bn-amarillo);
+		text-decoration-thickness: 3px;
+	}
+	.see-all:hover :global(svg) {
+		transform: translateX(4px);
+	}
+	.news-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 24px;
+	}
+	.news-grid :global(.news-main) {
+		flex: 999 1 600px;
+		min-width: 0;
+		min-height: 500px;
+	}
+	.news-side {
+		flex: 1 1 360px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	/* Empleos */
+	.jobs {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px 24px;
+		padding: clamp(20px, 3vw, 28px) clamp(20px, 3vw, 32px);
+		background: var(--bn-amarillo);
+	}
+	.jobs-title {
+		font-size: clamp(22px, 2.6vw, 26px);
+		font-weight: 800;
+		line-height: 1.1;
+		letter-spacing: -0.01em;
+	}
+	.jobs-cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 48px;
+		padding: 0 20px;
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+		font-size: 15px;
+		font-weight: 700;
+		text-decoration: none;
+		border-radius: var(--radius-s);
+	}
+	.jobs-cta :global(svg) {
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+	.jobs-cta:hover {
+		background: var(--bn-negro-700);
+	}
+	.jobs-cta:hover :global(svg) {
+		transform: translateX(4px);
+	}
+	.jobs-cta:focus-visible {
+		outline-color: var(--bn-negro);
+		box-shadow: 0 0 0 3px var(--bn-hueso);
+	}
+
+	@media (max-width: 720px) {
+		.main {
+			gap: 40px;
+			padding-top: 16px;
+		}
+		.news {
+			gap: 16px;
+		}
+		.news-grid :global(.news-main) {
+			min-height: 420px;
+		}
+		.jobs-cta {
+			width: 100%;
+			justify-content: center;
+		}
+	}
+</style>

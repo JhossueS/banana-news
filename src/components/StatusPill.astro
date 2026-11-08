@@ -1,0 +1,69 @@
+---
+import Icon, { type IconName } from './Icon.astro';
+
+const KINDS: Record<string, { label: string; icon: IconName; style: 'solid-coral' | 'solid-negro' | 'solid-amarillo' | 'outline' }> = {
+	'ultima-hora': { label: 'Última hora', icon: 'zap', style: 'solid-coral' },
+	'en-vivo': { label: 'En vivo', icon: 'radio', style: 'solid-coral' },
+	analisis: { label: 'Análisis', icon: 'chart-column', style: 'outline' },
+	verificado: { label: 'Verificado', icon: 'shield-check', style: 'solid-negro' },
+	contexto: { label: 'En contexto', icon: 'info', style: 'outline' },
+	alerta: { label: 'Alerta', icon: 'triangle-alert', style: 'solid-amarillo' },
+};
+
+interface Props {
+	kind?: keyof typeof KINDS;
+	label?: string;
+	/** Sobre fondo negro */
+	inverse?: boolean;
+}
+const { kind = 'ultima-hora', label, inverse = false } = Astro.props;
+const k = KINDS[kind] ?? KINDS['ultima-hora'];
+---
+
+<span class:list={['pill', `pill--${k.style}`, { inverse }]}>
+	<Icon name={k.icon} size={14} stroke={2.5} />
+	{label ?? k.label}
+</span>
+
+<style>
+	.pill {
+		display: inline-flex;
+		align-items: center;
+		align-self: flex-start;
+		gap: 6px;
+		padding: 6px 10px;
+		font-size: 12px;
+		font-weight: 700;
+		line-height: 1;
+		white-space: nowrap;
+		border-radius: var(--radius-s);
+		box-shadow: inset 0 0 0 2px var(--ring);
+	}
+	.pill--solid-coral {
+		--ring: var(--bn-coral);
+		background: var(--bn-coral);
+		color: var(--bn-negro);
+	}
+	.pill--solid-negro {
+		--ring: var(--bn-negro);
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	/* Sobre fondo negro, el pill negro pasa a hueso para no desaparecer */
+	.pill--solid-negro.inverse {
+		--ring: var(--bn-hueso);
+	}
+	.pill--solid-amarillo {
+		--ring: var(--bn-amarillo);
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+	}
+	.pill--outline {
+		--ring: var(--bn-negro);
+		color: var(--bn-negro);
+	}
+	.pill--outline.inverse {
+		--ring: var(--bn-hueso);
+		color: var(--bn-hueso);
+	}
+</style>

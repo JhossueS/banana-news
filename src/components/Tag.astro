@@ -1,0 +1,74 @@
+---
+import Icon, { type IconName } from './Icon.astro';
+
+interface Props {
+	variant?: 'amarillo' | 'coral' | 'negro' | 'hueso' | 'outline' | 'outline-hueso';
+	size?: 'sm' | 'md' | 'lg';
+	icon?: IconName;
+	class?: string;
+}
+const { variant = 'amarillo', size = 'md', icon, class: className } = Astro.props;
+const iconSize = { sm: 12, md: 15, lg: 18 }[size];
+---
+
+<span class:list={['tag', `tag--${variant}`, `tag--${size}`, className]}>
+	{icon && <Icon name={icon} size={iconSize} stroke={2.5} />}
+	<slot />
+</span>
+
+<style>
+	.tag {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45em;
+		font-weight: 800;
+		line-height: 1;
+		text-transform: uppercase;
+		letter-spacing: 0.01em;
+		white-space: nowrap;
+		border-radius: var(--radius-xs);
+	}
+	.tag--sm {
+		font-size: 11px;
+		padding: 4px 7px;
+		box-shadow: inset 0 0 0 1.5px var(--ring);
+	}
+	.tag--md {
+		font-size: 13px;
+		padding: 6px 10px;
+		box-shadow: inset 0 0 0 2px var(--ring);
+	}
+	.tag--lg {
+		font-size: 16px;
+		padding: 8px 14px;
+		box-shadow: inset 0 0 0 2px var(--ring);
+	}
+	.tag--amarillo {
+		--ring: var(--bn-amarillo);
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+	}
+	.tag--coral {
+		--ring: var(--bn-coral);
+		background: var(--bn-coral);
+		color: var(--bn-negro);
+	}
+	.tag--negro {
+		--ring: var(--bn-negro);
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.tag--hueso {
+		--ring: var(--bn-hueso);
+		background: var(--bn-hueso);
+		color: var(--bn-negro);
+	}
+	.tag--outline {
+		--ring: var(--bn-negro);
+		color: var(--bn-negro);
+	}
+	.tag--outline-hueso {
+		--ring: var(--bn-hueso);
+		color: var(--bn-hueso);
+	}
+</style>

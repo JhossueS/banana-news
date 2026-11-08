@@ -1,0 +1,402 @@
+---
+import Tag from './Tag.astro';
+import Icon from './Icon.astro';
+import StatusPill from './StatusPill.astro';
+
+const recientes = [
+	{ kind: 'verificado', label: undefined, title: 'Vecinos reportan un bache que lleva meses sin reparar', place: 'Guayaquil, Guayas' },
+	{ kind: 'contexto', label: 'En revisión', title: 'Cortes de agua sin aviso en el sector norte', place: 'Quito, Pichincha' },
+	{ kind: 'verificado', label: undefined, title: 'Paradero sin techo frente a la escuela del barrio', place: 'Cuenca, Azuay' },
+] as const;
+---
+
+<section id="denuncias" class="report" aria-labelledby="h-denuncia">
+	<aside class="ad" aria-label="Publicidad">
+		<span class="ad-label">Publicidad</span>
+		<div class="ad-slot">
+			<span class="ad-name">[TU ANUNCIO]</span>
+			<span class="ad-size"><span class="ad-size-d">300 × 600 · media página</span><span class="ad-size-m">320 × 100 · banner móvil</span></span>
+		</div>
+	</aside>
+
+	<div class="panel on-dark">
+		<div class="col-form">
+			<Tag variant="coral" size="md" icon="megaphone">Denuncia ciudadana</Tag>
+			<h2 id="h-denuncia" class="h">
+				¿Viste algo que debe saberse? <span class="hl">Cuéntanos.</span>
+			</h2>
+			<p class="lede">Verificamos cada denuncia antes de publicarla. Puedes enviarla de forma anónima.</p>
+
+			<form class="form" id="form-denuncia" novalidate>
+				<label class="field">
+					<span>¿Qué pasó?</span>
+					<textarea name="relato" rows="3" required minlength="15" placeholder="Describe el hecho con fecha y lugar"></textarea>
+				</label>
+				<label class="field">
+					<span>¿Dónde?</span>
+					<input type="text" name="lugar" required autocomplete="off" placeholder="Ciudad, barrio o dirección" />
+				</label>
+				<div class="actions">
+					<input type="file" id="adjunto" name="adjunto" accept="image/*,video/*" hidden />
+					<button type="button" class="btn btn--ghost" id="btn-adjunto">
+						<Icon name="camera" size={18} />
+						<span id="adjunto-label">Adjuntar foto o video</span>
+					</button>
+					<button type="submit" class="btn btn--primary">
+						Enviar denuncia
+						<Icon name="arrow-right" size={18} />
+					</button>
+				</div>
+				<p class="status" id="denuncia-status" role="status" aria-live="polite"></p>
+			</form>
+		</div>
+
+		<div class="col-list">
+			<h3 class="list-title">Denuncias recientes</h3>
+			<ul class="list">
+				{
+					recientes.map((r) => (
+						<li class="item">
+							<StatusPill kind={r.kind} label={r.label} inverse />
+							<a href="#" class="item-title">
+								{r.title}
+							</a>
+							<span class="place">
+								<Icon name="map-pin" size={14} />
+								{r.place}
+							</span>
+						</li>
+					))
+				}
+			</ul>
+		</div>
+	</div>
+</section>
+
+<style>
+	.report {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 24px;
+		align-items: stretch;
+	}
+
+	/* Publicidad */
+	.ad {
+		flex: 1 1 300px;
+		max-width: 340px;
+		min-height: 360px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.ad-label {
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--bn-gris-600);
+	}
+	.ad-slot {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 24px;
+		text-align: center;
+		background: var(--bn-gris-100);
+		box-shadow: inset 0 0 0 1px var(--bn-gris-200);
+	}
+	.ad-name {
+		font-size: 20px;
+		font-weight: 800;
+	}
+	.ad-size {
+		font-size: 13px;
+		color: var(--bn-gris-600);
+	}
+	.ad-size-m {
+		display: none;
+	}
+
+	/* Panel negro */
+	.panel {
+		flex: 999 1 600px;
+		min-width: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 40px;
+		padding: clamp(24px, 4vw, 40px);
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.col-form {
+		flex: 1 1 340px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 18px;
+	}
+	.h {
+		font-size: clamp(30px, 3.4vw, 40px);
+		font-weight: 800;
+		line-height: 1.06;
+		letter-spacing: -0.02em;
+	}
+	.hl {
+		display: inline;
+		padding: 0 6px;
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+		-webkit-box-decoration-break: clone;
+		box-decoration-break: clone;
+	}
+	/* Barra de bajada de la marca: filete vertical coral de 6 px */
+	.lede {
+		position: relative;
+		max-width: 46ch;
+		padding-left: 18px;
+		font-size: 17px;
+		line-height: 1.45;
+	}
+	.lede::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		width: 6px;
+		background: var(--bn-coral);
+	}
+
+	.form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		margin-top: 6px;
+	}
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 600;
+	}
+	.field input,
+	.field textarea {
+		padding: 12px 14px;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: var(--bn-hueso);
+		color: var(--bn-negro);
+		font-size: 16px;
+		line-height: 1.4;
+		resize: vertical;
+	}
+	.field input {
+		min-height: 48px;
+		padding-block: 0;
+	}
+	.field input:focus-visible,
+	.field textarea:focus-visible {
+		outline: 3px solid var(--bn-amarillo);
+		outline-offset: 2px;
+		box-shadow: none;
+	}
+	.field [aria-invalid='true'] {
+		box-shadow: inset 0 0 0 3px var(--bn-coral);
+	}
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		min-height: 48px;
+		padding: 0 20px;
+		border: 0;
+		border-radius: var(--radius-s);
+		font-size: 15px;
+		transition: opacity var(--dur-fast) var(--ease-out);
+	}
+	.btn:active {
+		opacity: 0.85;
+	}
+	.btn--ghost {
+		background: transparent;
+		color: var(--bn-hueso);
+		box-shadow: inset 0 0 0 2px var(--bn-hueso);
+		font-weight: 700;
+		max-width: 100%;
+	}
+	.btn--ghost:hover {
+		background: var(--bn-negro-700);
+	}
+	.btn--ghost span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.btn--primary {
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+		font-weight: 800;
+	}
+	.btn--primary:hover {
+		background: var(--bn-amarillo-300);
+	}
+	.btn:focus-visible {
+		outline: 3px solid var(--bn-amarillo);
+		outline-offset: 3px;
+		box-shadow: none;
+	}
+	.status {
+		min-height: 1.4em;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1.4;
+	}
+	.status[data-kind='ok'] {
+		color: var(--bn-amarillo);
+	}
+	.status[data-kind='error'] {
+		color: var(--bn-coral);
+	}
+
+	/* Recientes */
+	.col-list {
+		flex: 1 1 300px;
+		min-width: 0;
+	}
+	.list-title {
+		margin-bottom: 8px;
+		font-size: 13px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--bn-gris-400);
+	}
+	.list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		border-bottom: 1px solid var(--bn-gris-600);
+	}
+	.item {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 16px 0;
+		border-top: 1px solid var(--bn-gris-600);
+	}
+	.item-title {
+		font-size: 18px;
+		font-weight: 700;
+		line-height: 1.2;
+		color: var(--bn-hueso);
+		text-decoration: none;
+		text-decoration-color: var(--bn-amarillo);
+		text-decoration-thickness: 2px;
+	}
+	.item-title:hover {
+		text-decoration-line: underline;
+	}
+	.place {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		color: var(--bn-gris-400);
+	}
+
+	@media (max-width: 720px) {
+		/* El banner móvil va antes que el panel y sin altura de media página */
+		.ad {
+			flex-basis: 100%;
+			max-width: none;
+			min-height: 0;
+			gap: 6px;
+		}
+		.ad-slot {
+			flex: none;
+			height: 110px;
+			padding: 12px;
+			gap: 4px;
+		}
+		.ad-name {
+			font-size: 17px;
+		}
+		.ad-size {
+			font-size: 12px;
+		}
+		.ad-size-d {
+			display: none;
+		}
+		.ad-size-m {
+			display: inline;
+		}
+		/* El panel negro sangra a todo el ancho en móvil */
+		.panel {
+			flex-basis: 100%;
+			margin-inline: calc(var(--gutter) * -1);
+			padding: 32px var(--gutter);
+			gap: 28px;
+		}
+		.btn {
+			flex: 1 1 100%;
+		}
+		.item-title {
+			font-size: 16px;
+			line-height: 1.25;
+		}
+	}
+</style>
+
+<script>
+	const form = document.getElementById('form-denuncia') as HTMLFormElement | null;
+	const status = document.getElementById('denuncia-status');
+	const file = document.getElementById('adjunto') as HTMLInputElement | null;
+	const fileBtn = document.getElementById('btn-adjunto');
+	const fileLabel = document.getElementById('adjunto-label');
+
+	fileBtn?.addEventListener('click', () => file?.click());
+	file?.addEventListener('change', () => {
+		if (fileLabel) fileLabel.textContent = file.files?.[0]?.name ?? 'Adjuntar foto o video';
+	});
+
+	const say = (msg: string, kind: 'ok' | 'error') => {
+		if (!status) return;
+		status.textContent = msg;
+		status.dataset.kind = kind;
+	};
+
+	form?.addEventListener('submit', (e) => {
+		e.preventDefault();
+		const fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[required], textarea[required]'));
+		fields.forEach((f) => f.removeAttribute('aria-invalid'));
+		const bad = fields.find((f) => !f.checkValidity());
+		if (bad) {
+			bad.setAttribute('aria-invalid', 'true');
+			bad.focus();
+			say(
+				bad.name === 'relato'
+					? 'Cuéntanos qué pasó con al menos una frase completa.'
+					: 'Indica dónde ocurrió: ciudad, barrio o dirección.',
+				'error',
+			);
+			return;
+		}
+		// Sin servicio de recepción conectado todavía: confirmación local.
+		form.reset();
+		if (fileLabel) fileLabel.textContent = 'Adjuntar foto o video';
+		say('Recibimos tu denuncia. La verificaremos antes de publicarla.', 'ok');
+	});
+</script>

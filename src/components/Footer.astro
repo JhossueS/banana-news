@@ -1,0 +1,170 @@
+---
+import Logo from './Logo.astro';
+
+const cols = [
+	{
+		title: 'Secciones',
+		links: [
+			{ label: 'Noticias', href: '#noticias' },
+			{ label: 'Denuncias', href: '#denuncias' },
+			{ label: 'Empleos', href: '#empleos' },
+		],
+	},
+	{
+		title: 'Medio',
+		links: [
+			{ label: 'Quiénes somos', href: '#' },
+			{ label: 'Publicidad', href: '#' },
+			{ label: 'Contacto', href: '#' },
+		],
+	},
+];
+
+const social = ['Instagram', 'Facebook', 'TikTok', 'X'];
+---
+
+<footer class="footer on-dark">
+	<div class="wrap inner">
+		<div class="top">
+			<div class="brand">
+				<Logo layout="bloque" height={44} class="logo" />
+				<p>La noticia sin cáscara. Medio digital ecuatoriano.</p>
+			</div>
+			<nav class="cols" aria-label="Pie de página">
+				{
+					cols.map((c) => (
+						<div class="col">
+							<h2>{c.title}</h2>
+							<ul>
+								{c.links.map((l) => (
+									<li>
+										<a href={l.href}>{l.label}</a>
+									</li>
+								))}
+							</ul>
+						</div>
+					))
+				}
+			</nav>
+		</div>
+		<div class="bottom">
+			<ul class="social">
+				{
+					social.map((s) => (
+						<li>
+							<a href="#">{s}</a>
+						</li>
+					))
+				}
+			</ul>
+			<p class="copy">© 2026 Banana News</p>
+		</div>
+	</div>
+</footer>
+
+<style>
+	.footer {
+		margin-top: 64px;
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.inner {
+		display: flex;
+		flex-direction: column;
+		gap: 36px;
+		padding-block: 48px 28px;
+	}
+	.top {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 40px;
+		justify-content: space-between;
+	}
+	.brand {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+	.brand p {
+		font-size: 15px;
+		color: var(--bn-gris-400);
+	}
+	.cols {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 24px 56px;
+	}
+	.col h2 {
+		margin-bottom: 8px;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--bn-gris-400);
+	}
+	ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.col a {
+		display: flex;
+		align-items: center;
+		min-height: 36px;
+		font-size: 15px;
+		font-weight: 600;
+		text-decoration: none;
+	}
+	.col a:hover {
+		text-decoration: underline;
+		text-decoration-color: var(--bn-amarillo);
+	}
+	.bottom {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		padding-top: 24px;
+		border-top: 1px solid var(--bn-gris-600);
+	}
+	.social {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px 12px;
+	}
+	.social a {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		min-height: 44px;
+		padding: 0 16px;
+		font-size: 14px;
+		font-weight: 700;
+		text-decoration: none;
+		border-radius: var(--radius-s);
+		box-shadow: inset 0 0 0 2px var(--bn-hueso);
+		transition:
+			background var(--dur-fast) var(--ease-out),
+			color var(--dur-fast) var(--ease-out),
+			box-shadow var(--dur-fast) var(--ease-out);
+	}
+	.social a:hover {
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+		box-shadow: inset 0 0 0 2px var(--bn-amarillo);
+	}
+	.copy {
+		font-size: 13px;
+		color: var(--bn-gris-400);
+	}
+	@media (max-width: 720px) {
+		.footer {
+			margin-top: 48px;
+		}
+		.inner {
+			padding-block: 36px 24px;
+		}
+	}
+</style>

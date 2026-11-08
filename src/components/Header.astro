@@ -1,0 +1,250 @@
+---
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+
+const hoy = new Intl.DateTimeFormat('es-EC', {
+	weekday: 'long',
+	day: 'numeric',
+	month: 'long',
+	year: 'numeric',
+	timeZone: 'America/Guayaquil',
+}).format(new Date());
+const fecha = hoy.charAt(0).toUpperCase() + hoy.slice(1);
+
+const sections = [
+	{ id: 'noticias', label: 'Noticias' },
+	{ id: 'denuncias', label: 'Denuncias' },
+	{ id: 'empleos', label: 'Empleos' },
+];
+---
+
+<div class="topbar">
+	<div class="wrap topbar-inner">
+		<span><time id="fecha" datetime={new Date().toISOString().slice(0, 10)}>{fecha}</time> · Ecuador</span>
+		<a href="#denuncias" class="topbar-link on-dark">
+			<Icon name="megaphone" size={16} />
+			Envía tu denuncia
+		</a>
+	</div>
+</div>
+
+<header class="wrap masthead">
+	<a href="/" class="brand" aria-label="Banana News, inicio">
+		<Logo layout="bloque" height={52} class="logo" />
+	</a>
+	<p class="slogan">
+		<span>La noticia</span>
+		<span class="slogan-hl"><span>sin cáscara</span></span>
+	</p>
+</header>
+
+<nav class="nav" aria-label="Secciones">
+	<div class="wrap nav-inner">
+		<ul class="nav-list">
+			{
+				sections.map((s, i) => (
+					<li>
+						<a href={`#${s.id}`} data-section={s.id} aria-current={i === 0 ? 'true' : undefined}>
+							{s.label}
+						</a>
+					</li>
+				))
+			}
+		</ul>
+		<a href="#mapa" class="cta">
+			<Icon name="map-pin" size={18} />
+			Crear noticia en el mapa
+		</a>
+	</div>
+</nav>
+
+<style>
+	.topbar {
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.topbar-inner {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px 24px;
+		align-items: center;
+		justify-content: space-between;
+		padding-block: 10px;
+		font-size: 13px;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+	}
+	.topbar-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 24px;
+		color: var(--bn-amarillo);
+		text-decoration: none;
+	}
+	.topbar-link:hover {
+		text-decoration: underline;
+	}
+
+	.masthead {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px 32px;
+		padding-block: 28px 22px;
+	}
+	.brand {
+		display: inline-flex;
+		color: var(--bn-negro);
+	}
+	.slogan {
+		text-align: right;
+		font-weight: 800;
+		font-size: 26px;
+		line-height: 1.05;
+		letter-spacing: -0.02em;
+		text-transform: uppercase;
+	}
+	.slogan span {
+		display: block;
+	}
+	.slogan-hl {
+		display: inline-block;
+		margin-top: 2px;
+		padding: 0 8px;
+		background: var(--bn-amarillo);
+		transform: skewX(-8deg);
+	}
+	.slogan-hl > span {
+		transform: skewX(8deg);
+	}
+
+	.nav {
+		border-top: 3px solid var(--bn-negro);
+		border-bottom: 1px solid var(--line-soft);
+	}
+	.nav-inner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px 24px;
+	}
+	.nav-list {
+		display: flex;
+		gap: 4px 36px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.nav-list a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 56px;
+		font-size: 15px;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+		text-decoration: none;
+		box-shadow: inset 0 -6px 0 transparent;
+		transition: box-shadow var(--dur-base) var(--ease-out);
+	}
+	.nav-list a:hover {
+		box-shadow: inset 0 -6px 0 var(--bn-amarillo-300);
+	}
+	.nav-list a[aria-current] {
+		font-weight: 800;
+		box-shadow: inset 0 -6px 0 var(--bn-amarillo);
+	}
+	.cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 44px;
+		padding: 0 18px;
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+		font-size: 14px;
+		font-weight: 700;
+		text-decoration: none;
+		border-radius: var(--radius-s);
+	}
+	.cta:hover {
+		background: var(--bn-negro-700);
+	}
+	.cta:active {
+		opacity: 0.85;
+	}
+
+	@media (max-width: 720px) {
+		.masthead {
+			padding-block: 18px 14px;
+		}
+		.brand :global(.logo) {
+			height: 40px;
+			width: auto;
+		}
+		.slogan {
+			font-size: 14px;
+			line-height: 1.1;
+			letter-spacing: -0.01em;
+		}
+		.slogan-hl {
+			padding: 0 5px;
+		}
+		.nav-inner {
+			justify-content: stretch;
+		}
+		.nav-list {
+			width: 100%;
+			justify-content: space-between;
+		}
+		.nav-list a {
+			min-height: 48px;
+			font-size: 14px;
+			box-shadow: inset 0 -5px 0 transparent;
+		}
+		.nav-list a[aria-current] {
+			box-shadow: inset 0 -5px 0 var(--bn-amarillo);
+		}
+		/* La acción del mapa vive dentro de su sección en móvil */
+		.cta {
+			display: none;
+		}
+	}
+</style>
+
+<script>
+	// Fecha de hoy en la zona horaria de Ecuador (el HTML estático trae la de compilación)
+	const fecha = document.getElementById('fecha');
+	if (fecha) {
+		const hoy = new Date();
+		const txt = new Intl.DateTimeFormat('es-EC', {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric',
+			timeZone: 'America/Guayaquil',
+		}).format(hoy);
+		fecha.textContent = txt.charAt(0).toUpperCase() + txt.slice(1);
+	}
+
+	// Sección activa en la navegación
+	const links = document.querySelectorAll<HTMLAnchorElement>('.nav-list a[data-section]');
+	const sections = Array.from(links)
+		.map((a) => document.getElementById(a.dataset.section!))
+		.filter((el): el is HTMLElement => !!el);
+	if ('IntersectionObserver' in window && sections.length) {
+		const io = new IntersectionObserver(
+			(entries) => {
+				const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+				if (!visible) return;
+				links.forEach((a) => {
+					if (a.dataset.section === visible.target.id) a.setAttribute('aria-current', 'true');
+					else a.removeAttribute('aria-current');
+				});
+			},
+			{ rootMargin: '-35% 0px -55% 0px', threshold: [0, 0.1, 0.5, 1] },
+		);
+		sections.forEach((s) => io.observe(s));
+	}
+</script>
