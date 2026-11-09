@@ -5,7 +5,6 @@
 		"buildCommand": "pnpm build"
 	},
 	"deploy": {
-		"preDeployCommand": "pnpm db:migrar",
 		"startCommand": "pnpm start",
 		"healthcheckPath": "/api/salud",
 		"healthcheckTimeout": 60,

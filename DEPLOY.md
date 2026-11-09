@@ -33,17 +33,24 @@ Correo: Resend · Antispam: Cloudflare Turnstile
    | `ORIGEN_SECRETO` | `openssl rand -hex 32` (el mismo valor va en la regla de Cloudflare, §2.7) |
    | `SITE_URL` | `https://tu-dominio.com` (sin barra final) |
    | `NODE_ENV` | `production` |
-4. `railway.json` ya define el build (`pnpm build`), las migraciones antes de cada deploy (`pnpm db:migrar`),
-   el arranque (`pnpm start`) y el healthcheck (`/api/salud`).
-5. Primer deploy. Después crea la primera cuenta de administrador **dentro del contenedor** (así usa la red
-   interna de Railway y la base nunca se expone):
+   | `ADMIN_INICIAL` | tu correo: crea la primera cuenta de administrador (ver paso 5) |
+   | `ADMIN_INICIAL_NOMBRE` | opcional: tu nombre |
+4. `railway.json` define el build (`pnpm build`), el arranque (`pnpm start`) y el healthcheck (`/api/salud`).
+   **`pnpm start` prepara la base en cada arranque**, antes de levantar la app:
+   1. `pnpm db:migrar` crea o actualiza las tablas (si ya están al día no hace nada);
+   2. `pnpm admin:inicial` crea la primera cuenta de administrador, solo si la base no tiene ninguna;
+   3. arranca el servidor.
+   Se hace al arrancar y no en el build porque durante el build Railway no tiene acceso a la red privada de
+   Postgres. Si una migración falla, la app no arranca, el healthcheck falla y Railway mantiene el deploy anterior.
+5. Primer deploy. Con `ADMIN_INICIAL` definida, al arrancar se crea tu cuenta y te llega por correo un **enlace de
+   un solo uso** (vence en 48 h) a `https://tu-dominio.com/admin/activar/#t=…`, donde eliges tu contraseña
+   (mínimo 12 caracteres). Si el correo no sale (Resend sin configurar), el enlace aparece en los Deploy Logs como
+   `[admin-inicial]`. Cuando ya existe alguna cuenta, `admin:inicial` no hace nada.
+   Si pierdes el enlace o necesitas otra cuenta desde la terminal, dentro del contenedor:
    ```sh
-   railway link
-   railway ssh -- pnpm admin:crear tu@correo.com "Tu Nombre" admin
+   railway ssh
+   pnpm admin:crear tu@correo.com "Tu Nombre" admin   # imprime un enlace nuevo; el anterior deja de valer
    ```
-   El comando no pide ni muestra contraseñas: imprime un **enlace de un solo uso** (vence en 48 h) a
-   `https://tu-dominio.com/admin/activar/#t=…`, donde eliges la tuya (mínimo 12 caracteres). En la base solo queda el
-   hash del enlace. Si lo pierdes, vuelve a correr el comando: el anterior deja de valer.
    Las demás cuentas se crean desde **/admin/usuarios**: la persona recibe el enlace por correo.
 
    **Cuentas y acceso:**
