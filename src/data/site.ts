@@ -15,10 +15,11 @@ export const site = {
 	horario: 'Lunes a viernes, de 09:00 a 18:00',
 	/** Perfiles oficiales. Vacíos = no se muestran en el pie ni en los datos estructurados (sameAs) */
 	redes: {
-		Instagram: '',
-		Facebook: '',
-		TikTok: '',
-		X: '',
+		Instagram: 'https://www.instagram.com/banananewstv/',
+		Facebook: 'https://www.facebook.com/banana.news.tv24',
+		TikTok: 'https://www.tiktok.com/@banana.newstv',
+		X: 'https://x.com/BananaNewsTV',
+		youtube: 'https://www.youtube.com/@BananaNews-tv',
 	} as Record<string, string>,
 	/** Página o portal de ofertas de empleo. Vacío = la portada muestra «Próximamente» con la banana buscando */
 	empleosUrl: '',
