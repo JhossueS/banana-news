@@ -25,10 +25,6 @@ const videos = !!almacen.stream;
 	<div class="a-card">
 		<h2>{videos ? 'Subir imagen o video' : 'Subir imagen'}</h2>
 		<SubirMedio />
-		<p class="a-muted aviso">
-			{almacen.local ? 'Modo local: los archivos se guardan en .data/media (configura R2 para producción).' : 'Las imágenes se guardan en Cloudflare R2.'}
-			{videos && ' Los videos se suben a Cloudflare Stream.'}
-		</p>
 		{
 			!videos && (
 				<p class="pronto">
