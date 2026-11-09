@@ -33,25 +33,26 @@ Correo: Resend · Antispam: Cloudflare Turnstile
    | `ORIGEN_SECRETO` | `openssl rand -hex 32` (el mismo valor va en la regla de Cloudflare, §2.7) |
    | `SITE_URL` | `https://tu-dominio.com` (sin barra final) |
    | `NODE_ENV` | `production` |
-   | `ADMIN_INICIAL` | tu correo: crea la primera cuenta de administrador (ver paso 5) |
-   | `ADMIN_INICIAL_NOMBRE` | opcional: tu nombre |
+   | `SETUP_TOKEN` | `openssl rand -hex 32`: código para crear la primera cuenta (paso 5) |
 4. `railway.json` define el build (`pnpm build`), el arranque (`pnpm start`) y el healthcheck (`/api/salud`).
-   **`pnpm start` prepara la base en cada arranque**, antes de levantar la app:
-   1. `pnpm db:migrar` crea o actualiza las tablas (si ya están al día no hace nada);
-   2. `pnpm admin:inicial` crea la primera cuenta de administrador, solo si la base no tiene ninguna;
-   3. arranca el servidor.
+   **`pnpm start` prepara la base en cada arranque**: primero `pnpm db:migrar` crea o actualiza las tablas
+   (si ya están al día no hace nada) y después arranca el servidor.
    Se hace al arrancar y no en el build porque durante el build Railway no tiene acceso a la red privada de
    Postgres. Si una migración falla, la app no arranca, el healthcheck falla y Railway mantiene el deploy anterior.
-5. Primer deploy. Con `ADMIN_INICIAL` definida, al arrancar se crea tu cuenta y te llega por correo un **enlace de
-   un solo uso** (vence en 48 h) a `https://tu-dominio.com/admin/activar/#t=…`, donde eliges tu contraseña
-   (mínimo 12 caracteres). Si el correo no sale (Resend sin configurar), el enlace aparece en los Deploy Logs como
-   `[admin-inicial]`. Cuando ya existe alguna cuenta, `admin:inicial` no hace nada.
-   Si pierdes el enlace o necesitas otra cuenta desde la terminal, dentro del contenedor:
+5. Primer deploy. **Crea la primera cuenta de administrador** en `https://tu-dominio.com/admin/configurar/`
+   (o en `/admin`, que te lleva ahí mientras no hay cuentas): pide el código `SETUP_TOKEN`, tu nombre, tu correo
+   y tu contraseña (mínimo 12 caracteres).
+   - Solo funciona mientras la base no tiene ninguna cuenta; después responde 404 para siempre.
+   - Sin el código nadie puede usarla, aunque llegue antes que tú. Hay un límite de 5 intentos cada 15 min.
+   - Al terminar llega un aviso al correo de la cuenta. Ya puedes borrar `SETUP_TOKEN` de Railway.
+
+   Las demás cuentas se crean desde **/admin/usuarios**: la persona recibe el enlace por correo.
+
+   **Recuperación de emergencia** (si pierdes el acceso de todos los administradores), dentro del contenedor:
    ```sh
    railway ssh
-   pnpm admin:crear tu@correo.com "Tu Nombre" admin   # imprime un enlace nuevo; el anterior deja de valer
+   pnpm admin:crear tu@correo.com "Tu Nombre" admin   # imprime un enlace de un solo uso
    ```
-   Las demás cuentas se crean desde **/admin/usuarios**: la persona recibe el enlace por correo.
 
    **Cuentas y acceso:**
    - Nadie elige ni ve la contraseña de otra persona; cada quien pone la suya con su enlace.

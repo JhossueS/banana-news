@@ -12,9 +12,7 @@
     "astro": "astro",
     "db:generar": "drizzle-kit generate",
     "db:migrar": "node --env-file-if-exists=.env scripts/db-migrar.ts",
-    "admin:crear": "node --env-file-if-exists=.env scripts/admin-crear.ts",
-    "admin:inicial": "node --env-file-if-exists=.env scripts/admin-inicial.ts",
-    "start": "pnpm db:migrar && pnpm admin:inicial && HOST=0.0.0.0 node ./dist/server/entry.mjs"
+    "start": "pnpm db:migrar && HOST=0.0.0.0 node ./dist/server/entry.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.11",

@@ -1,0 +1,170 @@
+---
+/**
+ * Instalación del panel: crea la primera cuenta de administrador.
+ * Solo existe mientras la base no tiene cuentas; después responde 404.
+ */
+import Layout from '../../layouts/Layout.astro';
+import Logo from '../../components/Logo.astro';
+import { hayCuentas, MIN_TOKEN, tokenConfigurado } from '../../lib/instalacion';
+
+export const prerender = false;
+
+if (await hayCuentas()) return Astro.rewrite('/404');
+const listo = tokenConfigurado();
+---
+
+<Layout title="Configura tu panel · Banana News" noindex>
+	<meta slot="head" name="robots" content="noindex, nofollow" />
+	<main id="contenido" class="wrap">
+		<form class="card" id="form-configurar" novalidate>
+			<span class="logo"><Logo height={32} /></span>
+			<h1>Configura tu panel</h1>
+			{
+				listo ? (
+					<>
+						<p class="nota">Crea la cuenta de administración. Esta página deja de existir en cuanto la cuenta queda creada.</p>
+						<label class="field">
+							<span>Código de instalación</span>
+							<input type="password" name="token" required autocomplete="off" spellcheck="false" />
+							<small>El valor de <code>SETUP_TOKEN</code> en las variables de Railway.</small>
+						</label>
+						<label class="field">
+							<span>Tu nombre</span>
+							<input name="name" required maxlength="120" autocomplete="name" />
+						</label>
+						<label class="field">
+							<span>Correo</span>
+							<input type="email" name="email" required autocomplete="username" inputmode="email" />
+						</label>
+						<label class="field">
+							<span>Contraseña</span>
+							<input type="password" name="password" required minlength="12" maxlength="128" autocomplete="new-password" />
+							<small>Al menos 12 caracteres. Mejor una frase: cuatro palabras al azar.</small>
+						</label>
+						<label class="field">
+							<span>Repítela</span>
+							<input type="password" name="repetir" required autocomplete="new-password" />
+						</label>
+						<button type="submit" class="btn">Crear cuenta de administración</button>
+						<p class="status" id="configurar-status" role="status" aria-live="polite" />
+					</>
+				) : (
+					<p class="nota">
+						Para crear la primera cuenta, define la variable <code>SETUP_TOKEN</code> en Railway (al menos {MIN_TOKEN} caracteres,
+						por ejemplo con <code>openssl rand -hex 32</code>), vuelve a desplegar y recarga esta página.
+					</p>
+				)
+			}
+		</form>
+	</main>
+</Layout>
+
+<style>
+	.wrap {
+		display: grid;
+		place-items: center;
+		min-height: 100dvh;
+		padding: 24px var(--gutter);
+		background: var(--bn-negro);
+	}
+	.card {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		width: min(440px, 100%);
+		padding: 32px;
+		background: var(--bn-hueso);
+		border-radius: var(--radius-m);
+		box-shadow: inset 0 6px 0 var(--bn-amarillo);
+	}
+	h1 {
+		font-size: 22px;
+		font-weight: 800;
+	}
+	.nota {
+		font-size: 14px;
+		line-height: 1.5;
+	}
+	code {
+		font-family: ui-monospace, monospace;
+		font-size: 0.92em;
+	}
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 700;
+	}
+	.field small {
+		font-weight: 500;
+		color: var(--bn-gris-600);
+	}
+	.field input {
+		min-height: 48px;
+		padding: 0 14px;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: #fff;
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+		font-size: 16px;
+	}
+	.field input:focus-visible {
+		outline: 3px solid var(--bn-amarillo);
+	}
+	.btn {
+		min-height: 48px;
+		border: 0;
+		border-radius: var(--radius-s);
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+		font-size: 15px;
+		font-weight: 800;
+	}
+	.btn:disabled {
+		opacity: 0.6;
+	}
+	.status {
+		min-height: 1.4em;
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--bn-coral-700);
+	}
+</style>
+
+<script>
+	const form = document.getElementById('form-configurar') as HTMLFormElement;
+	const status = document.getElementById('configurar-status');
+	const btn = form.querySelector<HTMLButtonElement>('button[type=submit]');
+
+	form.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		if (!status || !btn) return;
+		const d = Object.fromEntries(new FormData(form)) as Record<string, string>;
+		if (!d.token || !d.name || !d.email || !d.password) return void (status.textContent = 'Completa todos los campos.');
+		if (d.password.length < 12) return void (status.textContent = 'La contraseña debe tener al menos 12 caracteres.');
+		if (d.password !== d.repetir) return void (status.textContent = 'Las dos contraseñas no coinciden.');
+		btn.disabled = true;
+		status.textContent = '';
+		try {
+			const res = await fetch('/api/configurar', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ token: d.token.trim(), name: d.name, email: d.email, password: d.password }),
+			});
+			if (res.ok) {
+				location.replace('/admin/login/?configurado=1');
+				return;
+			}
+			if (res.status === 404) {
+				location.replace('/admin/login/');
+				return;
+			}
+			const j = (await res.json().catch(() => ({}))) as { error?: string };
+			status.textContent = j.error ?? 'No pudimos crear la cuenta. Inténtalo de nuevo.';
+		} catch {
+			status.textContent = 'No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.';
+		}
+		btn.disabled = false;
+	});
+</script>

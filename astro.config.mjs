@@ -59,6 +59,10 @@ export default defineConfig({
 			    la petición. Impide entrar directo a *.up.railway.app saltándose Cloudflare. */
 			ORIGEN_SECRETO: secreto(),
 
+			/** Código para crear la primera cuenta de administrador en /admin/configurar/ (mín. 24 caracteres).
+			    Solo sirve mientras no existe ninguna cuenta. */
+			SETUP_TOKEN: secreto(),
+
 			/* Purga de caché del CDN */
 			CF_ZONE_ID: secreto(),
 			CF_API_TOKEN: secreto(),

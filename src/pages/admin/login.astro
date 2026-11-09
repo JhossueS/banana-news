@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Logo from '../../components/Logo.astro';
+import { hayCuentas } from '../../lib/instalacion';
 
 export const prerender = false;
 
@@ -8,7 +9,10 @@ export const prerender = false;
 if (Astro.locals.usuario) return Astro.redirect('/admin');
 const volver = Astro.url.searchParams.get('volver');
 const destino = volver?.startsWith('/admin') ? volver : '/admin';
-const activada = Astro.url.searchParams.has('activada');
+const configurado = Astro.url.searchParams.has('configurado');
+const activada = Astro.url.searchParams.has('activada') || configurado;
+// Primera vez: todavía no hay cuentas, el panel se configura en /admin/configurar/
+if (!(await hayCuentas())) return Astro.redirect('/admin/configurar/');
 ---
 
 <Layout title="Ingresar · Panel Banana News">
@@ -28,7 +32,7 @@ const activada = Astro.url.searchParams.has('activada');
 			<button type="submit" class="btn">Ingresar</button>
 			<button type="button" class="olvide" id="btn-olvide">¿Olvidaste tu contraseña?</button>
 			<p class="status" id="login-status" role="status" aria-live="polite" data-kind={activada ? 'ok' : undefined}>
-				{activada && 'Contraseña guardada. Ya puedes ingresar.'}
+				{configurado ? 'Cuenta de administración creada. Ya puedes ingresar.' : activada && 'Contraseña guardada. Ya puedes ingresar.'}
 			</p>
 		</form>
 	</main>

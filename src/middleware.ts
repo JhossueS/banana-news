@@ -70,8 +70,8 @@ async function responder(ctx: Parameters<Parameters<typeof defineMiddleware>[0]>
 	ctx.locals.usuario = s?.user ?? null;
 	ctx.locals.sesion = s?.session ?? null;
 
-	// Ingreso y activación de cuenta (con el enlace de un solo uso) se ven sin sesión
-	const sinSesion = ['/admin/login', '/admin/activar'].includes(ctx.url.pathname.replace(/\/$/, ''));
+	// Ingreso, activación de cuenta (enlace de un solo uso) e instalación inicial se ven sin sesión
+	const sinSesion = ['/admin/login', '/admin/activar', '/admin/configurar'].includes(ctx.url.pathname.replace(/\/$/, ''));
 	if (!s && !sinSesion) {
 		if (ctx.url.pathname.startsWith('/api/')) return Response.json({ error: 'No autorizado' }, { status: 401 });
 		return ctx.redirect(`/admin/login?volver=${encodeURIComponent(ctx.url.pathname)}`);
