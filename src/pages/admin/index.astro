@@ -1,0 +1,79 @@
+---
+import { count, eq } from 'drizzle-orm';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { db, tablas } from '../../db/index.ts';
+import { puede } from '../../lib/roles';
+
+export const prerender = false;
+
+const rol = Astro.locals.usuario?.rol;
+const contar = async (t: typeof tablas.reportesMapa | typeof tablas.denuncias) =>
+	(await db.select({ n: count() }).from(t).where(eq(t.estado, 'sin-verificar')))[0]?.n ?? 0;
+
+const [reportes, denuncias, mensajes, borradores] = await Promise.all([
+	contar(tablas.reportesMapa),
+	contar(tablas.denuncias),
+	db.select({ n: count() }).from(tablas.mensajes).where(eq(tablas.mensajes.estado, 'nuevo')).then((r) => r[0]?.n ?? 0),
+	db.select({ n: count() }).from(tablas.noticias).where(eq(tablas.noticias.publicacion, 'borrador')).then((r) => r[0]?.n ?? 0),
+]);
+
+const tarjetas = [
+	{ ok: puede(rol, 'moderacion'), n: reportes, label: 'Reportes del mapa sin verificar', href: '/admin/moderacion?tipo=mapa' },
+	{ ok: puede(rol, 'moderacion'), n: denuncias, label: 'Denuncias sin verificar', href: '/admin/moderacion?tipo=denuncias' },
+	{ ok: puede(rol, 'mensajes'), n: mensajes, label: 'Mensajes sin responder', href: '/admin/mensajes' },
+	{ ok: puede(rol, 'notas'), n: borradores, label: 'Notas en borrador', href: '/admin/notas?estado=borrador' },
+].filter((t) => t.ok);
+---
+
+<AdminLayout title={`Hola, ${Astro.locals.usuario?.name.split(' ')[0] ?? ''}`}>
+	<ul class="cards">
+		{
+			tarjetas.map((t) => (
+				<li>
+					<a class="card" href={t.href} data-alerta={t.n > 0 ? '' : undefined}>
+						<strong>{t.n}</strong>
+						<span>{t.label}</span>
+					</a>
+				</li>
+			))
+		}
+	</ul>
+</AdminLayout>
+
+<style>
+	.cards {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		gap: 16px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.card {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 20px;
+		background: #fff;
+		border-radius: var(--radius-m);
+		box-shadow: inset 0 0 0 1px var(--line-soft);
+		color: inherit;
+		text-decoration: none;
+	}
+	.card:hover {
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+	}
+	.card[data-alerta] {
+		box-shadow: inset 0 6px 0 var(--bn-amarillo), inset 0 0 0 1px var(--line-soft);
+	}
+	.card strong {
+		font-size: 40px;
+		font-weight: 800;
+		line-height: 1;
+	}
+	.card span {
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+	}
+</style>

@@ -1,0 +1,107 @@
+---
+import { and, desc, eq, ilike } from 'drizzle-orm';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { db, tablas } from '../../../db/index';
+import { puede } from '../../../lib/roles';
+
+export const prerender = false;
+if (!puede(Astro.locals.usuario?.rol, 'notas')) return Astro.redirect('/admin');
+
+const { noticias } = tablas;
+const estado = Astro.url.searchParams.get('estado');
+const seccion = Astro.url.searchParams.get('seccion');
+const q = Astro.url.searchParams.get('q')?.trim();
+const secciones = tablas.seccion.enumValues;
+
+const filas = await db
+	.select({ id: noticias.id, titulo: noticias.titulo, slug: noticias.slug, seccion: noticias.seccion, publicacion: noticias.publicacion, fecha: noticias.fecha, modificado: noticias.modificado, autor: noticias.autor, lat: noticias.lat })
+	.from(noticias)
+	.where(
+		and(
+			estado === 'borrador' || estado === 'publicada' ? eq(noticias.publicacion, estado) : undefined,
+			seccion && (secciones as readonly string[]).includes(seccion) ? eq(noticias.seccion, seccion as (typeof secciones)[number]) : undefined,
+			q ? ilike(noticias.titulo, `%${q}%`) : undefined,
+		),
+	)
+	.orderBy(desc(noticias.modificado))
+	.limit(200);
+
+const fmt = new Intl.DateTimeFormat('es-EC', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Guayaquil' });
+const tab = (e: string | null) => {
+	const u = new URL(Astro.url);
+	if (e) u.searchParams.set('estado', e);
+	else u.searchParams.delete('estado');
+	return u.pathname + u.search;
+};
+---
+
+<AdminLayout title="Notas" actual="notas">
+	<nav class="a-tabs" aria-label="Estado">
+		<a href={tab(null)} aria-current={!estado ? 'page' : undefined}>Todas</a>
+		<a href={tab('publicada')} aria-current={estado === 'publicada' ? 'page' : undefined}>Publicadas</a>
+		<a href={tab('borrador')} aria-current={estado === 'borrador' ? 'page' : undefined}>Borradores</a>
+	</nav>
+	<form class="a-toolbar" method="get">
+		{estado && <input type="hidden" name="estado" value={estado} />}
+		<input class="a-input" style="max-width:280px" type="search" name="q" value={q ?? ''} placeholder="Buscar por título" aria-label="Buscar por título" />
+		<select class="a-input" style="max-width:180px" name="seccion" aria-label="Sección" onchange="this.form.submit()">
+			<option value="">Todas las secciones</option>
+			{secciones.map((s) => <option selected={s === seccion}>{s}</option>)}
+		</select>
+		<button class="a-btn a-btn--ghost">Filtrar</button>
+		<button type="button" class="a-btn a-btn--amarillo a-push" id="btn-nueva">+ Nueva nota</button>
+	</form>
+	<p class="a-status" id="notas-status" role="status"></p>
+
+	{
+		filas.length ? (
+			<div class="a-table-wrap">
+				<table class="a-table">
+					<thead>
+						<tr>
+							<th>Título</th>
+							<th>Sección</th>
+							<th>Estado</th>
+							<th>Fecha</th>
+							<th>Última edición</th>
+						</tr>
+					</thead>
+					<tbody>
+						{filas.map((n) => (
+							<tr>
+								<td>
+									<a href={`/admin/notas/${n.id}`}>{n.titulo}</a>
+									<div class="a-muted">
+										/{n.slug} · {n.autor}
+										{n.lat !== null && ' · 📍 en el mapa'}
+									</div>
+								</td>
+								<td>{n.seccion}</td>
+								<td>{n.publicacion === 'publicada' ? <span class="a-badge a-badge--ok">Publicada</span> : <span class="a-badge">Borrador</span>}</td>
+								<td class="a-muted">{fmt.format(n.fecha)}</td>
+								<td class="a-muted">{fmt.format(n.modificado)}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		) : (
+			<p class="a-empty">No hay notas con estos filtros.</p>
+		)
+	}
+</AdminLayout>
+
+<script>
+	import { api, say } from '../../../scripts/admin/api';
+	document.getElementById('btn-nueva')?.addEventListener('click', async (e) => {
+		const b = e.currentTarget as HTMLButtonElement;
+		b.disabled = true;
+		try {
+			const { id } = await api<{ id: string }>('/api/admin/notas', 'POST', {});
+			location.href = `/admin/notas/${id}`;
+		} catch (err) {
+			say(document.getElementById('notas-status'), (err as Error).message, 'error');
+			b.disabled = false;
+		}
+	});
+</script>

@@ -1,0 +1,143 @@
+---
+/**
+ * Elegir contraseña con el enlace de un solo uso (cuenta nueva, acceso restablecido u «olvidé mi contraseña»).
+ * El token llega en el fragmento (#t=…): nunca pasa por el servidor, el CDN ni los logs.
+ */
+import Layout from '../../layouts/Layout.astro';
+import Logo from '../../components/Logo.astro';
+
+export const prerender = false;
+---
+
+<Layout title="Elige tu contraseña · Panel Banana News" noindex>
+	<meta slot="head" name="robots" content="noindex, nofollow" />
+	<main id="contenido" class="wrap">
+		<form class="card" id="form-activar" novalidate>
+			<span class="logo"><Logo height={32} /></span>
+			<h1>Elige tu contraseña</h1>
+			<p class="nota">Al menos 12 caracteres. Mejor una frase que puedas recordar, por ejemplo cuatro palabras al azar.</p>
+			<label class="field">
+				<span>Contraseña nueva</span>
+				<input type="password" name="clave" required minlength="12" maxlength="128" autocomplete="new-password" />
+			</label>
+			<label class="field">
+				<span>Repítela</span>
+				<input type="password" name="repetir" required autocomplete="new-password" />
+			</label>
+			<button type="submit" class="btn">Guardar contraseña</button>
+			<p class="status" id="activar-status" role="status" aria-live="polite"></p>
+		</form>
+	</main>
+</Layout>
+
+<style>
+	.wrap {
+		display: grid;
+		place-items: center;
+		min-height: 100dvh;
+		padding: 24px var(--gutter);
+		background: var(--bn-negro);
+	}
+	.card {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		width: min(420px, 100%);
+		padding: 32px;
+		background: var(--bn-hueso);
+		border-radius: var(--radius-m);
+		box-shadow: inset 0 6px 0 var(--bn-amarillo);
+	}
+	h1 {
+		font-size: 22px;
+		font-weight: 800;
+	}
+	.nota {
+		font-size: 14px;
+	}
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 700;
+	}
+	.field input {
+		min-height: 48px;
+		padding: 0 14px;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: #fff;
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+		font-size: 16px;
+	}
+	.field input:focus-visible {
+		outline: 3px solid var(--bn-amarillo);
+	}
+	.btn {
+		min-height: 48px;
+		border: 0;
+		border-radius: var(--radius-s);
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+		font-size: 15px;
+		font-weight: 800;
+	}
+	.btn:disabled {
+		opacity: 0.6;
+	}
+	.status {
+		min-height: 1.4em;
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--bn-coral-700);
+	}
+</style>
+
+<script>
+	const form = document.getElementById('form-activar') as HTMLFormElement;
+	const status = document.getElementById('activar-status')!;
+	const btn = form.querySelector('button')!;
+
+	// Leer el token y sacarlo de la barra de direcciones (y del historial)
+	const token = new URLSearchParams(location.hash.slice(1)).get('t');
+	history.replaceState(null, '', location.pathname);
+
+	const VENCIDO = 'Este enlace ya se usó o venció. Pide uno nuevo a un administrador o usa «¿Olvidaste tu contraseña?» al ingresar.';
+	if (!token) {
+		status.textContent = VENCIDO;
+		btn.disabled = true;
+	}
+
+	form.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		const clave = String(new FormData(form).get('clave') ?? '');
+		const repetir = String(new FormData(form).get('repetir') ?? '');
+		if (clave.length < 12) return void (status.textContent = 'La contraseña debe tener al menos 12 caracteres.');
+		if (clave.length > 128) return void (status.textContent = 'La contraseña puede tener hasta 128 caracteres.');
+		if (clave !== repetir) return void (status.textContent = 'Las dos contraseñas no coinciden.');
+		btn.disabled = true;
+		status.textContent = '';
+		try {
+			const res = await fetch('/api/auth/reset-password', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ newPassword: clave, token }),
+			});
+			if (res.ok) {
+				location.replace('/admin/login/?activada=1');
+				return;
+			}
+			const j = (await res.json().catch(() => ({}))) as { code?: string };
+			status.textContent =
+				res.status === 429
+					? 'Demasiados intentos. Espera unos minutos.'
+					: j.code === 'PASSWORD_TOO_SHORT'
+						? 'La contraseña debe tener al menos 12 caracteres.'
+						: VENCIDO;
+		} catch {
+			status.textContent = 'No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.';
+		}
+		btn.disabled = false;
+	});
+</script>

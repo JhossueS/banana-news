@@ -1,0 +1,140 @@
+---
+/** Marco del panel interno: navegación por área según el rol. */
+import Layout from './Layout.astro';
+import '../styles/admin.css';
+import Logo from '../components/Logo.astro';
+import { puede, type Area } from '../lib/roles';
+
+interface Props {
+	title: string;
+	actual?: Area | 'inicio';
+}
+const { title, actual = 'inicio' } = Astro.props;
+const u = Astro.locals.usuario;
+
+const nav: { area: Area | 'inicio'; href: string; label: string }[] = [
+	{ area: 'inicio', href: '/admin', label: 'Inicio' },
+	{ area: 'notas', href: '/admin/notas', label: 'Notas' },
+	{ area: 'medios', href: '/admin/medios', label: 'Medios' },
+	{ area: 'moderacion', href: '/admin/moderacion', label: 'Moderación' },
+	{ area: 'mensajes', href: '/admin/mensajes', label: 'Mensajes' },
+	{ area: 'usuarios', href: '/admin/usuarios', label: 'Usuarios' },
+];
+const visibles = nav.filter((n) => n.area === 'inicio' || puede(u?.rol, n.area));
+---
+
+<Layout title={`${title} · Panel Banana News`}>
+	<meta slot="head" name="robots" content="noindex, nofollow" />
+	<div class="admin">
+		<header class="bar">
+			<a href="/admin" class="brand" aria-label="Panel Banana News"><Logo height={28} /></a>
+			<nav aria-label="Panel">
+				<ul>
+					{
+						visibles.map((n) => (
+							<li>
+								<a href={n.href} aria-current={n.area === actual ? 'page' : undefined}>
+									{n.label}
+								</a>
+							</li>
+						))
+					}
+				</ul>
+			</nav>
+			{
+				u && (
+					<div class="who">
+						<span>
+							{u.name} · <em>{u.rol}</em>
+						</span>
+						<button type="button" id="btn-salir">Salir</button>
+					</div>
+				)
+			}
+		</header>
+		<main id="contenido" class="main">
+			<h1 class="title">{title}</h1>
+			<slot />
+		</main>
+	</div>
+</Layout>
+
+<style>
+	.admin {
+		min-height: 100dvh;
+		background: var(--bn-hueso);
+	}
+	.bar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 12px 28px;
+		padding: 12px var(--gutter);
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.brand {
+		display: inline-flex;
+		color: inherit;
+	}
+	nav ul {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	nav a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 40px;
+		padding: 0 12px;
+		border-radius: var(--radius-s);
+		color: inherit;
+		font-size: 14px;
+		font-weight: 700;
+		text-decoration: none;
+	}
+	nav a:hover {
+		background: var(--bn-negro-700);
+	}
+	nav a[aria-current='page'] {
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+	}
+	.who {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin-left: auto;
+		font-size: 13px;
+	}
+	.who button {
+		min-height: 36px;
+		padding: 0 12px;
+		border: 0;
+		border-radius: var(--radius-s);
+		background: var(--bn-negro-700);
+		color: inherit;
+		font-weight: 700;
+	}
+	.main {
+		max-width: var(--grid-max);
+		margin: 0 auto;
+		padding: 32px var(--gutter) 64px;
+	}
+	.title {
+		margin-bottom: 24px;
+		font-size: clamp(26px, 3vw, 34px);
+		font-weight: 800;
+		letter-spacing: -0.015em;
+	}
+</style>
+
+<script>
+	document.getElementById('btn-salir')?.addEventListener('click', async () => {
+		await fetch('/api/auth/sign-out', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+		location.href = '/admin/login';
+	});
+</script>

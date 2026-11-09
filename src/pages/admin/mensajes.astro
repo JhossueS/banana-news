@@ -1,0 +1,112 @@
+---
+import { desc, eq } from 'drizzle-orm';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { db, tablas } from '../../db/index';
+import { puede } from '../../lib/roles';
+
+export const prerender = false;
+if (!puede(Astro.locals.usuario?.rol, 'mensajes')) return Astro.redirect('/admin');
+
+const estado = Astro.url.searchParams.get('estado') === 'respondido' ? 'respondido' : 'nuevo';
+const filas = await db.select().from(tablas.mensajes).where(eq(tablas.mensajes.estado, estado)).orderBy(desc(tablas.mensajes.creado)).limit(200);
+const fmt = new Intl.DateTimeFormat('es-EC', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Guayaquil' });
+const asuntos: Record<string, string> = { redaccion: 'Redacción', publicidad: 'Publicidad', correccion: 'Corrección', datos: 'Datos personales', otro: 'Otro' };
+---
+
+<AdminLayout title="Mensajes de contacto" actual="mensajes">
+	<nav class="a-tabs" aria-label="Estado">
+		<a href="/admin/mensajes" aria-current={estado === 'nuevo' ? 'page' : undefined}>Sin responder</a>
+		<a href="/admin/mensajes?estado=respondido" aria-current={estado === 'respondido' ? 'page' : undefined}>Respondidos</a>
+	</nav>
+	{
+		filas.length ? (
+			<ul class="items">
+				{filas.map((m) => (
+					<li class="a-card item" data-id={m.id}>
+						<div class="head">
+							<span class="a-badge">{asuntos[m.asunto] ?? m.asunto}</span>
+							<strong>{m.nombre}</strong>
+							<a href={`mailto:${m.correo}?subject=${encodeURIComponent('Re: tu mensaje a Banana News')}`}>{m.correo}</a>
+							<span class="a-muted">{fmt.format(m.creado)}</span>
+						</div>
+						<p class="msg">{m.mensaje}</p>
+						<div class="acciones">
+							<a class="a-btn a-btn--sm" href={`mailto:${m.correo}?subject=${encodeURIComponent('Re: tu mensaje a Banana News')}`}>
+								Responder por correo
+							</a>
+							{m.estado === 'nuevo' ? (
+								<button class="a-btn a-btn--sm a-btn--ghost" data-estado="respondido">
+									Marcar como respondido
+								</button>
+							) : (
+								<button class="a-btn a-btn--sm a-btn--ghost" data-estado="nuevo">
+									Marcar sin responder
+								</button>
+							)}
+							<button class="a-btn a-btn--sm a-btn--peligro" data-borrar>
+								Borrar
+							</button>
+						</div>
+						<p class="a-status" role="status" />
+					</li>
+				))}
+			</ul>
+		) : (
+			<p class="a-empty">No hay mensajes aquí.</p>
+		)
+	}
+</AdminLayout>
+
+<style>
+	.items {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.item {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.head {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		align-items: center;
+		font-size: 14px;
+	}
+	.head a {
+		color: inherit;
+		font-weight: 600;
+	}
+	.msg {
+		font-size: 16px;
+		line-height: 1.5;
+		white-space: pre-line;
+	}
+	.acciones {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+</style>
+
+<script>
+	import { api, say } from '../../scripts/admin/api';
+	document.addEventListener('click', async (e) => {
+		const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-estado], [data-borrar]');
+		const li = b?.closest<HTMLElement>('[data-id]');
+		if (!b || !li) return;
+		const borrar = b.hasAttribute('data-borrar');
+		if (borrar && !confirm('¿Borrar este mensaje?')) return;
+		try {
+			await api('/api/admin/mensajes', 'POST', borrar ? { id: li.dataset.id, borrar: true } : { id: li.dataset.id, estado: b.dataset.estado });
+			li.remove();
+		} catch (err) {
+			say(li.querySelector('.a-status'), (err as Error).message, 'error');
+		}
+	});
+</script>

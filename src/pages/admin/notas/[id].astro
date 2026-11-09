@@ -1,0 +1,444 @@
+---
+import { eq } from 'drizzle-orm';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import SelectorMedios from '../../../components/admin/SelectorMedios.astro';
+import { db, tablas } from '../../../db/index';
+import { puede } from '../../../lib/roles';
+import { medioVista } from '../../../lib/vistas-admin';
+import { provincias } from '../../../data/provincias';
+import { medios as almacen } from '../../../lib/medios';
+
+// Los videos propios se activan solos al configurar Cloudflare Stream
+const videos = !!almacen.stream;
+
+export const prerender = false;
+
+if (!puede(Astro.locals.usuario?.rol, 'notas')) return Astro.redirect('/admin');
+const id = Astro.params.id ?? '';
+const n = /^[0-9a-f-]{36}$/.test(id) ? await db.query.noticias.findFirst({ where: eq(tablas.noticias.id, id), with: { imagen: true } }) : null;
+if (!n) return Astro.redirect('/admin/notas');
+
+const datos = JSON.stringify({
+	id: n.id,
+	slug: n.slug,
+	cuerpo: n.cuerpo,
+	imagen: n.imagen ? medioVista(n.imagen) : null,
+	publicacion: n.publicacion,
+}).replace(/</g, '\\u003c');
+
+/** <input type="datetime-local"> en hora de Ecuador (UTC−5, sin horario de verano) */
+const local = (d: Date | null) => (d ? new Date(d.getTime() - 5 * 3600_000).toISOString().slice(0, 16) : '');
+const secciones = tablas.seccion.enumValues;
+const estados: [string, string][] = [
+	['', 'Sin etiqueta'],
+	['ultima-hora', 'Última hora'],
+	['en-vivo', 'En vivo'],
+	['analisis', 'Análisis'],
+	['verificado', 'Verificado'],
+	['contexto', 'En contexto'],
+	['alerta', 'Alerta'],
+];
+---
+
+<AdminLayout title={n.publicacion === 'publicada' ? 'Editar nota publicada' : 'Editar borrador'} actual="notas">
+	<script type="application/json" id="nota-data" set:html={datos} />
+	<form id="form-nota" class="ed" novalidate>
+		<div class="ed-main">
+			<label class="a-field">
+				<span>Título</span>
+				<input name="titulo" class="ed-titulo" value={n.titulo === 'Nota sin título' ? '' : n.titulo} placeholder="Verbo en presente, sujeto concreto" maxlength="160" required />
+			</label>
+			<label class="a-field">
+				<span>Bajada <small>una o dos frases: por qué importa</small></span>
+				<textarea name="bajada" rows="2" maxlength="400">{n.bajada}</textarea>
+			</label>
+
+			<div class="a-field">
+				<span id="lbl-cuerpo">Texto de la nota <small>doble clic en una imagen o video para editar su pie</small></span>
+				<div class="ed-box" data-campo="cuerpo">
+					<div class="ed-tools" role="toolbar" aria-label="Formato">
+						<button type="button" data-cmd="bold" title="Negrita (Ctrl+B)"><b>N</b></button>
+						<button type="button" data-cmd="italic" title="Cursiva (Ctrl+I)"><i>C</i></button>
+						<button type="button" data-cmd="h2" title="Subtítulo">H2</button>
+						<button type="button" data-cmd="h3" title="Subtítulo menor">H3</button>
+						<button type="button" data-cmd="bulletList" title="Lista">• Lista</button>
+						<button type="button" data-cmd="orderedList" title="Lista numerada">1. Lista</button>
+						<button type="button" data-cmd="blockquote" title="Cita">“ Cita</button>
+						<button type="button" data-cmd="link" title="Enlace">Enlace</button>
+						<span class="ed-sep" aria-hidden="true"></span>
+						<button type="button" data-cmd="imagen" class="ed-media">+ Imagen</button>
+						{
+							videos ? (
+								<button type="button" data-cmd="video" class="ed-media">+ Video</button>
+							) : (
+								<button type="button" class="ed-media ed-pronto" disabled title="Subir videos propios estará disponible próximamente. Por ahora usa + YouTube.">
+									+ Video <span class="ed-pronto-tag">Próximamente</span>
+								</button>
+							)
+						}
+						<button type="button" data-cmd="youtube" class="ed-media" title="Pegar un enlace de YouTube">+ YouTube</button>
+						<span class="ed-sep" aria-hidden="true"></span>
+						<button type="button" data-cmd="undo" title="Deshacer (Ctrl+Z)">↶</button>
+						<button type="button" data-cmd="redo" title="Rehacer">↷</button>
+					</div>
+					<div id="editor" class="ed-doc" aria-labelledby="lbl-cuerpo"></div>
+				</div>
+			</div>
+
+			<label class="a-field">
+				<span>Claves «Sin cáscara» <small>una por línea, hasta 6 (opcional)</small></span>
+				<textarea name="claves" rows="4">{n.claves.join('\n')}</textarea>
+			</label>
+		</div>
+
+		<aside class="ed-side">
+			<div class="a-card ed-pub">
+				<h2>Publicación</h2>
+				<p class="ed-estado">
+					{n.publicacion === 'publicada' ? <span class="a-badge a-badge--ok">Publicada</span> : <span class="a-badge">Borrador</span>}
+					<span class="a-muted" id="ed-guardado"></span>
+				</p>
+				<div class="ed-btns">
+					<button type="submit" class="a-btn" data-accion="guardar">Guardar</button>
+					{
+						n.publicacion === 'publicada' ? (
+							<button type="button" class="a-btn a-btn--ghost" data-accion="despublicar">
+								Pasar a borrador
+							</button>
+						) : (
+							<button type="button" class="a-btn a-btn--amarillo" data-accion="publicar">
+								Publicar
+							</button>
+						)
+					}
+				</div>
+				{
+					n.publicacion === 'publicada' && (
+						<a class="ed-ver" href={`/noticias/${n.slug}/`} target="_blank" rel="noopener">
+							Ver la nota publicada ↗
+						</a>
+					)
+				}
+				<p class="a-status" id="ed-status" role="status" aria-live="polite"></p>
+			</div>
+
+			<div class="a-card">
+				<h2>Datos</h2>
+				<div class="ed-fields">
+					<label class="a-field">
+						<span>Enlace <small>/noticias/…/</small></span>
+						<input name="slug" value={n.slug.startsWith('borrador-') ? '' : n.slug} pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="80" placeholder="se genera del título" />
+					</label>
+					<label class="a-field">
+						<span>Sección</span>
+						<select name="seccion">{secciones.map((s) => <option selected={s === n.seccion}>{s}</option>)}</select>
+					</label>
+					<label class="a-field">
+						<span>Etiqueta</span>
+						<select name="estado">{estados.map(([v, l]) => <option value={v} selected={(n.estado ?? '') === v}>{l}</option>)}</select>
+					</label>
+					<label class="a-field">
+						<span>Firma</span>
+						<input name="autor" value={n.autor} maxlength="120" />
+					</label>
+					<label class="a-field">
+						<span>Lugar <small>ciudad, provincia</small></span>
+						<input name="lugar" value={n.lugar} maxlength="160" placeholder="Quito, Pichincha" />
+					</label>
+					<label class="a-field">
+						<span>Fecha de publicación <small>hora de Ecuador</small></span>
+						<input type="datetime-local" name="fecha" value={local(n.fecha)} />
+					</label>
+					<label class="a-field">
+						<span>Actualizado <small>opcional</small></span>
+						<input type="datetime-local" name="actualizado" value={local(n.actualizado)} />
+					</label>
+				</div>
+			</div>
+
+			<div class="a-card">
+				<h2>Imagen principal</h2>
+				<div class="ed-portada" data-campo="imagenId">
+					<div class="a-medio-img" id="portada-vista">Sin imagen</div>
+					<div class="ed-btns">
+						<button type="button" class="a-btn a-btn--ghost a-btn--sm" id="btn-portada">Elegir imagen</button>
+						<button type="button" class="a-btn a-btn--peligro a-btn--sm" id="btn-portada-quitar">Quitar</button>
+					</div>
+				</div>
+				<div class="ed-fields">
+					<label class="a-field">
+						<span>Texto alternativo <small>vacío = el de la imagen</small></span>
+						<input name="alt" value={n.alt} maxlength="300" />
+					</label>
+					<label class="a-field">
+						<span>Crédito <small>vacío = el de la imagen</small></span>
+						<input name="credito" value={n.credito} maxlength="200" />
+					</label>
+				</div>
+			</div>
+
+			<div class="a-card">
+				<h2>Ubicación en el mapa <small class="a-muted">(opcional)</small></h2>
+				<div class="ed-fields">
+					<label class="a-field">
+						<span>Provincia</span>
+						<select name="provincia">
+							<option value="">No mostrar en el mapa</option>
+							{provincias.map(([c, nombre]) => <option value={c} selected={n.provincia === c}>{nombre}</option>)}
+						</select>
+					</label>
+					<label class="a-field">
+						<span>Ciudad o lugar del punto</span>
+						<input name="ciudad" value={n.ciudad ?? ''} maxlength="120" />
+					</label>
+					<div class="ed-coords">
+						<label class="a-field">
+							<span>Latitud</span>
+							<input name="lat" inputmode="decimal" value={n.lat ?? ''} placeholder="-0.1807" />
+						</label>
+						<label class="a-field">
+							<span>Longitud</span>
+							<input name="lon" inputmode="decimal" value={n.lon ?? ''} placeholder="-78.4678" />
+						</label>
+					</div>
+					<p class="a-muted">Tip: en Google Maps, clic derecho sobre el lugar → copia las coordenadas y pégalas en Latitud.</p>
+				</div>
+			</div>
+
+			<button type="button" class="a-btn a-btn--peligro ed-borrar" data-accion="borrar">Borrar nota</button>
+		</aside>
+	</form>
+	<SelectorMedios />
+</AdminLayout>
+
+<style>
+	.ed {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 340px;
+		gap: 24px;
+		align-items: start;
+	}
+	@media (max-width: 1000px) {
+		.ed {
+			grid-template-columns: 1fr;
+		}
+	}
+	.ed-main {
+		display: flex;
+		flex-direction: column;
+		gap: 18px;
+	}
+	.ed-side {
+		position: sticky;
+		top: 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+	.ed-side .a-card + .a-card {
+		margin-top: 0;
+	}
+	.ed-titulo {
+		font-size: 24px !important;
+		font-weight: 800 !important;
+	}
+	.ed-fields {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.ed-coords {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
+	}
+	.ed-btns {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.ed-estado {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 12px;
+	}
+	.ed-ver {
+		display: inline-block;
+		margin-top: 12px;
+		font-size: 14px;
+		font-weight: 700;
+		color: inherit;
+	}
+	.ed-pub .a-status {
+		margin-top: 10px;
+	}
+	.ed-portada {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		margin-bottom: 14px;
+		border-radius: var(--radius-s);
+	}
+	.ed-portada[data-invalid] {
+		box-shadow: 0 0 0 3px var(--bn-coral-700);
+	}
+	.ed-borrar {
+		align-self: flex-start;
+	}
+
+	.ed-box {
+		background: #fff;
+		border-radius: var(--radius-s);
+		box-shadow: inset 0 0 0 1px var(--bn-gris-400);
+	}
+	.ed-box[data-invalid] {
+		box-shadow: inset 0 0 0 3px var(--bn-coral-700);
+	}
+	.ed-tools {
+		position: sticky;
+		top: 0;
+		z-index: 2;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		padding: 8px;
+		background: var(--bn-gris-100);
+		border-radius: var(--radius-s) var(--radius-s) 0 0;
+		border-bottom: 1px solid var(--bn-gris-200);
+	}
+	.ed-tools button {
+		min-width: 36px;
+		min-height: 34px;
+		padding: 0 10px;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: transparent;
+		font: inherit;
+		font-size: 13px;
+		font-weight: 700;
+		cursor: pointer;
+	}
+	.ed-tools button:hover {
+		background: var(--bn-gris-200);
+	}
+	.ed-tools button[aria-pressed='true'] {
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.ed-tools .ed-media {
+		background: var(--bn-amarillo);
+	}
+	.ed-tools .ed-pronto {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		background: var(--bn-gris-100);
+		color: var(--bn-gris-600);
+		cursor: not-allowed;
+	}
+	.ed-tools .ed-pronto:hover {
+		background: var(--bn-gris-100);
+	}
+	.ed-pronto-tag {
+		padding: 1px 6px;
+		border-radius: 999px;
+		background: var(--bn-negro);
+		color: var(--bn-amarillo);
+		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+	.ed-sep {
+		width: 1px;
+		margin: 4px 4px;
+		background: var(--bn-gris-400);
+	}
+	.ed-doc :global(.ProseMirror) {
+		min-height: 420px;
+		padding: 20px 24px;
+		font-size: 17px;
+		font-weight: 500;
+		line-height: 1.65;
+		outline: none;
+	}
+	.ed-doc :global(.ProseMirror > * + *) {
+		margin-top: 0.9em;
+	}
+	.ed-doc :global(h2) {
+		font-size: 24px;
+		font-weight: 800;
+	}
+	.ed-doc :global(h3) {
+		font-size: 19px;
+		font-weight: 800;
+	}
+	.ed-doc :global(ul),
+	.ed-doc :global(ol) {
+		padding-left: 1.4em;
+	}
+	.ed-doc :global(ul) {
+		list-style: disc;
+	}
+	.ed-doc :global(ol) {
+		list-style: decimal;
+	}
+	.ed-doc :global(blockquote) {
+		padding-left: 16px;
+		border-left: 4px solid var(--bn-amarillo);
+		font-weight: 700;
+	}
+	.ed-doc :global(blockquote p:not(:first-child):has(> em:only-child)) {
+		margin-top: 8px;
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+	}
+	.ed-doc :global(a) {
+		text-decoration: underline;
+		text-decoration-color: var(--bn-amarillo-700);
+	}
+	.ed-doc :global(.ed-fig) {
+		margin: 1.2em 0;
+		padding: 8px;
+		background: var(--bn-gris-100);
+		border-radius: var(--radius-s);
+		cursor: grab;
+	}
+	.ed-doc :global(.ed-fig img) {
+		display: block;
+		max-width: 100%;
+		max-height: 360px;
+		margin: 0 auto;
+	}
+	.ed-doc :global(.ed-fig figcaption) {
+		margin-top: 6px;
+		font-size: 13px;
+		color: var(--bn-gris-600);
+	}
+	.ed-doc :global(.ed-video-ph) {
+		display: grid;
+		place-items: center;
+		aspect-ratio: 16 / 9;
+		max-height: 300px;
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+		font-weight: 800;
+	}
+	.ed-doc :global(.ProseMirror-selectednode) {
+		outline: 3px solid var(--bn-negro);
+	}
+	.ed-doc :global(p.is-editor-empty:first-child::before) {
+		content: attr(data-placeholder);
+		float: left;
+		height: 0;
+		color: var(--bn-gris-400);
+		pointer-events: none;
+	}
+</style>
+
+<script>
+	import '../../../scripts/admin/editor-nota';
+</script>

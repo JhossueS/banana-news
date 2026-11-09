@@ -1,0 +1,270 @@
+---
+import { desc, eq } from 'drizzle-orm';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { db, tablas } from '../../db/index';
+import { puede } from '../../lib/roles';
+import { nombreProvincia, provincias } from '../../data/provincias';
+
+export const prerender = false;
+if (!puede(Astro.locals.usuario?.rol, 'moderacion')) return Astro.redirect('/admin');
+
+const tipo = Astro.url.searchParams.get('tipo') === 'denuncias' ? 'denuncias' : 'mapa';
+const estados = ['sin-verificar', 'verificado', 'rechazado'] as const;
+const pedido = Astro.url.searchParams.get('estado');
+const estado = (estados as readonly string[]).includes(pedido ?? '') ? (pedido as (typeof estados)[number]) : 'sin-verificar';
+
+const reportes =
+	tipo === 'mapa'
+		? await db.query.reportesMapa.findMany({
+				where: eq(tablas.reportesMapa.estado, estado),
+				orderBy: desc(tablas.reportesMapa.creado),
+				limit: 200,
+				with: { nota: { columns: { titulo: true, slug: true } } },
+			})
+		: [];
+const denuncias =
+	tipo === 'denuncias'
+		? await db.select().from(tablas.denuncias).where(eq(tablas.denuncias.estado, estado)).orderBy(desc(tablas.denuncias.creado)).limit(200)
+		: [];
+const notasPublicadas =
+	tipo === 'mapa'
+		? await db
+				.select({ id: tablas.noticias.id, titulo: tablas.noticias.titulo })
+				.from(tablas.noticias)
+				.where(eq(tablas.noticias.publicacion, 'publicada'))
+				.orderBy(desc(tablas.noticias.fecha))
+				.limit(100)
+		: [];
+
+const fmt = new Intl.DateTimeFormat('es-EC', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Guayaquil' });
+const url = (t: string, e: string) => `/admin/moderacion?tipo=${t}&estado=${e}`;
+const etiqueta = { 'sin-verificar': 'Sin verificar', verificado: 'Verificadas', rechazado: 'Rechazadas' };
+---
+
+<AdminLayout title="Moderación" actual="moderacion">
+	<nav class="a-tabs" aria-label="Tipo de aporte">
+		<a href={url('mapa', estado)} aria-current={tipo === 'mapa' ? 'page' : undefined}>Reportes del mapa</a>
+		<a href={url('denuncias', estado)} aria-current={tipo === 'denuncias' ? 'page' : undefined}>Denuncias</a>
+	</nav>
+	<div class="a-toolbar">
+		{
+			estados.map((e) => (
+				<a class:list={['a-btn', 'a-btn--sm', e === estado ? '' : 'a-btn--ghost']} href={url(tipo, e)}>
+					{etiqueta[e]}
+				</a>
+			))
+		}
+	</div>
+	<p class="a-muted intro">
+		Lo «sin verificar» ya es visible en el sitio con esa etiqueta. Rechazar lo oculta al instante; verificar cambia la etiqueta.
+	</p>
+
+	{
+		tipo === 'mapa' &&
+			(reportes.length ? (
+				<ul class="items">
+					{reportes.map((r) => (
+						<li class="a-card item" data-tipo="mapa" data-id={r.id}>
+							<div class="item-head">
+								<span class="a-badge">{r.seccion}</span>
+								<span class="a-muted">{fmt.format(r.creado)}</span>
+							</div>
+							<h2>{r.titular}</h2>
+							{r.bajada && <p>{r.bajada}</p>}
+							<p class="a-muted">
+								📍 {r.ciudad || r.canton}, {nombreProvincia(r.provincia)} ·{' '}
+								<a href={`https://www.google.com/maps?q=${r.lat},${r.lon}`} target="_blank" rel="noopener">
+									{r.lat.toFixed(4)}, {r.lon.toFixed(4)}
+								</a>
+							</p>
+							{r.nota && (
+								<p class="a-muted">
+									Enlazado a: <a href={`/noticias/${r.nota.slug}/`}>{r.nota.titulo}</a>
+								</p>
+							)}
+							<div class="acciones">
+								{r.estado !== 'verificado' && <button class="a-btn a-btn--sm" data-accion="verificar">Verificar</button>}
+								{r.estado !== 'rechazado' && <button class="a-btn a-btn--sm a-btn--ghost" data-accion="rechazar">Rechazar</button>}
+								{r.estado !== 'sin-verificar' && <button class="a-btn a-btn--sm a-btn--ghost" data-accion="reabrir">Volver a «sin verificar»</button>}
+								<label class="enlazar">
+									<span class="sr-only">Enlazar a una nota</span>
+									<select class="a-input" data-enlazar>
+										<option value="">Enlazar a una nota…</option>
+										{notasPublicadas.map((n) => <option value={n.id} selected={r.notaId === n.id}>{n.titulo}</option>)}
+									</select>
+								</label>
+								<button class="a-btn a-btn--sm a-btn--peligro" data-accion="borrar">Borrar</button>
+							</div>
+							<p class="a-status" role="status" />
+						</li>
+					))}
+				</ul>
+			) : (
+				<p class="a-empty">No hay reportes en esta bandeja.</p>
+			))
+	}
+
+	{
+		tipo === 'denuncias' &&
+			(denuncias.length ? (
+				<ul class="items">
+					{denuncias.map((d) => (
+						<li class="a-card item" data-tipo="denuncia" data-id={d.id}>
+							<div class="item-head">
+								<span class="a-badge">{d.anonimo ? 'Anónima' : 'Con contacto'}</span>
+								<span class="a-muted">{fmt.format(d.creado)}</span>
+							</div>
+							<p class="relato">{d.relato}</p>
+							<p class="a-muted">📍 {d.lugar}</p>
+							{d.contacto && <p class="a-muted">Contacto (privado): {d.contacto}</p>}
+							{d.adjuntoKey && (
+								<p>
+									<a class="a-btn a-btn--sm a-btn--ghost" href={`/api/admin/archivo/${d.adjuntoKey}`} download>
+										Descargar adjunto
+									</a>
+								</p>
+							)}
+							{d.lat !== null && <p class="a-muted">Ubicada en el mapa: {d.lat?.toFixed(4)}, {d.lon?.toFixed(4)}</p>}
+							<div class="acciones">
+								{d.estado !== 'verificado' && <button class="a-btn a-btn--sm" data-accion="verificar">Verificar</button>}
+								{d.estado !== 'rechazado' && <button class="a-btn a-btn--sm a-btn--ghost" data-accion="rechazar">Rechazar</button>}
+								{d.estado !== 'sin-verificar' && <button class="a-btn a-btn--sm a-btn--ghost" data-accion="reabrir">Volver a «sin verificar»</button>}
+								<button class="a-btn a-btn--sm a-btn--peligro" data-accion="borrar">Borrar</button>
+							</div>
+							{d.lat === null && d.estado !== 'rechazado' && (
+								<details class="ubicar">
+									<summary>Ubicarla en el mapa</summary>
+									<div class="ubicar-campos">
+										<label class="a-field">
+											<span>Provincia</span>
+											<select name="provincia">
+												{provincias.map(([c, n]) => <option value={c}>{n}</option>)}
+											</select>
+										</label>
+										<label class="a-field">
+											<span>Ciudad</span>
+											<input name="ciudad" value={d.lugar.split(',')[0]} />
+										</label>
+										<label class="a-field">
+											<span>Coordenadas <small>lat, lon</small></span>
+											<input name="coords" placeholder="-2.1894, -79.8891" />
+										</label>
+										<button class="a-btn a-btn--sm a-btn--amarillo" data-accion="ubicar">Crear punto</button>
+									</div>
+								</details>
+							)}
+							<p class="a-status" role="status" />
+						</li>
+					))}
+				</ul>
+			) : (
+				<p class="a-empty">No hay denuncias en esta bandeja.</p>
+			))
+	}
+</AdminLayout>
+
+<style>
+	.intro {
+		margin-bottom: 16px;
+	}
+	.items {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.item {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.item h2 {
+		margin: 0;
+		font-size: 18px;
+	}
+	.item-head {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+	}
+	.relato {
+		font-size: 16px;
+		line-height: 1.5;
+		white-space: pre-line;
+	}
+	.acciones {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		align-items: center;
+	}
+	.enlazar .a-input {
+		min-height: 32px;
+		max-width: 280px;
+		padding: 2px 8px;
+		font-size: 13px;
+	}
+	.ubicar summary {
+		cursor: pointer;
+		font-size: 14px;
+		font-weight: 700;
+	}
+	.ubicar-campos {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+		gap: 10px;
+		align-items: end;
+		margin-top: 10px;
+	}
+	.item a {
+		color: inherit;
+	}
+</style>
+
+<script>
+	import { api, say } from '../../scripts/admin/api';
+
+	const enviar = async (li: HTMLElement, cuerpo: Record<string, unknown>) => {
+		const st = li.querySelector<HTMLElement>('.a-status');
+		say(st, 'Guardando…');
+		try {
+			await api('/api/admin/moderacion', 'POST', { tipo: li.dataset.tipo, id: li.dataset.id, ...cuerpo });
+			li.style.opacity = '0.45';
+			say(st, 'Hecho. El sitio se actualiza en segundos.', 'ok');
+			setTimeout(() => location.reload(), 700);
+		} catch (e) {
+			say(st, (e as Error).message, 'error');
+		}
+	};
+
+	document.addEventListener('click', (e) => {
+		const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-accion]');
+		const li = b?.closest<HTMLElement>('[data-id]');
+		if (!b || !li) return;
+		const accion = b.dataset.accion!;
+		if (accion === 'borrar' && !confirm('¿Borrar definitivamente?')) return;
+		if (accion === 'ubicar') {
+			const coords = (li.querySelector<HTMLInputElement>('[name=coords]')?.value ?? '').split(',').map((s) => Number(s.trim()));
+			if (coords.length !== 2 || coords.some((n) => Number.isNaN(n))) {
+				say(li.querySelector('.a-status'), 'Escribe las coordenadas como «lat, lon».', 'error');
+				return;
+			}
+			return enviar(li, {
+				accion,
+				lat: coords[0],
+				lon: coords[1],
+				provincia: li.querySelector<HTMLSelectElement>('[name=provincia]')!.value,
+				ciudad: li.querySelector<HTMLInputElement>('[name=ciudad]')!.value,
+			});
+		}
+		enviar(li, { accion });
+	});
+	document.addEventListener('change', (e) => {
+		const s = e.target as HTMLSelectElement;
+		if (!s.matches('[data-enlazar]')) return;
+		const li = s.closest<HTMLElement>('[data-id]')!;
+		enviar(li, { accion: 'enlazar', notaId: s.value || null });
+	});
+</script>

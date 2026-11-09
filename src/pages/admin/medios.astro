@@ -1,0 +1,162 @@
+---
+import { desc, eq } from 'drizzle-orm';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import SubirMedio from '../../components/admin/SubirMedio.astro';
+import { db, tablas } from '../../db/index';
+import { puede } from '../../lib/roles';
+import { medioVista } from '../../lib/vistas-admin';
+import { medios as almacen } from '../../lib/medios';
+
+export const prerender = false;
+if (!puede(Astro.locals.usuario?.rol, 'medios')) return Astro.redirect('/admin');
+
+const tipo = Astro.url.searchParams.get('tipo');
+const filas = await db
+	.select()
+	.from(tablas.medios)
+	.where(tipo === 'imagen' || tipo === 'video' ? eq(tablas.medios.tipo, tipo) : undefined)
+	.orderBy(desc(tablas.medios.creado))
+	.limit(200);
+const lista = filas.map(medioVista);
+const videos = !!almacen.stream;
+---
+
+<AdminLayout title="Medios" actual="medios">
+	<div class="a-card">
+		<h2>{videos ? 'Subir imagen o video' : 'Subir imagen'}</h2>
+		<SubirMedio />
+		<p class="a-muted aviso">
+			{almacen.local ? 'Modo local: los archivos se guardan en .data/media (configura R2 para producción).' : 'Las imágenes se guardan en Cloudflare R2.'}
+			{videos && ' Los videos se suben a Cloudflare Stream.'}
+		</p>
+		{
+			!videos && (
+				<p class="pronto">
+					<span class="pronto-tag">Próximamente</span>
+					Subir videos propios. Mientras tanto, inserta videos de YouTube con <strong>+ YouTube</strong> en el editor de la nota.
+				</p>
+			)
+		}
+	</div>
+
+	<nav class="a-tabs tabs" aria-label="Tipo">
+		<a href="/admin/medios" aria-current={!tipo ? 'page' : undefined}>Todos</a>
+		<a href="/admin/medios?tipo=imagen" aria-current={tipo === 'imagen' ? 'page' : undefined}>Imágenes</a>
+		{videos && <a href="/admin/medios?tipo=video" aria-current={tipo === 'video' ? 'page' : undefined}>Videos</a>}
+	</nav>
+
+	{
+		lista.length ? (
+			<ul class="a-grid-medios" id="lista-medios">
+				{lista.map((m) => (
+					<li class="a-medio" data-id={m.id} data-tipo={m.tipo} data-listo={String(m.listo)}>
+						<span class="a-medio-img">{m.vista ? <img src={m.vista} alt="" loading="lazy" /> : m.tipo === 'video' ? '▶ Video' : 'Sin vista'}</span>
+						<label class="a-field">
+							<span class="sr-only">Texto alternativo</span>
+							<input name="alt" value={m.alt} placeholder="Texto alternativo" maxlength="300" />
+						</label>
+						<label class="a-field">
+							<span class="sr-only">Crédito</span>
+							<input name="credito" value={m.credito} placeholder="Crédito" maxlength="200" />
+						</label>
+						<div class="acciones">
+							{m.tipo === 'video' && !m.listo && (
+								<button type="button" class="a-btn a-btn--sm a-btn--ghost" data-act="comprobar">
+									Procesando · comprobar
+								</button>
+							)}
+							<a class="a-btn a-btn--sm a-btn--ghost" href={m.url} target="_blank" rel="noopener">
+								Abrir
+							</a>
+							<button type="button" class="a-btn a-btn--sm a-btn--peligro" data-act="borrar">
+								Borrar
+							</button>
+						</div>
+						<span class="a-status" role="status" />
+					</li>
+				))}
+			</ul>
+		) : (
+			<p class="a-empty">Todavía no hay medios.</p>
+		)
+	}
+</AdminLayout>
+
+<style>
+	.aviso {
+		margin-top: 12px;
+	}
+	.tabs {
+		margin-top: 28px;
+	}
+	.acciones {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.a-medio .a-field input {
+		min-height: 34px;
+		padding: 4px 8px;
+		font-size: 13px;
+	}
+	.pronto {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+		margin-top: 12px;
+		padding: 12px 14px;
+		border-radius: var(--radius-s);
+		background: var(--bn-gris-100);
+		font-size: 14px;
+	}
+	.pronto-tag {
+		padding: 2px 8px;
+		border-radius: 999px;
+		background: var(--bn-negro);
+		color: var(--bn-amarillo);
+		font-size: 11px;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+</style>
+
+<script>
+	import { api, say } from '../../scripts/admin/api';
+
+	document.addEventListener('medio-subido', () => location.reload());
+
+	const lista = document.getElementById('lista-medios');
+	lista?.addEventListener('change', async (e) => {
+		const input = e.target as HTMLInputElement;
+		const li = input.closest<HTMLElement>('[data-id]');
+		if (!li || !input.name) return;
+		const st = li.querySelector<HTMLElement>('.a-status');
+		try {
+			await api(`/api/admin/medios/${li.dataset.id}`, 'PATCH', { [input.name]: input.value });
+			say(st, 'Guardado', 'ok');
+		} catch (err) {
+			say(st, (err as Error).message, 'error');
+		}
+	});
+	lista?.addEventListener('click', async (e) => {
+		const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
+		const li = b?.closest<HTMLElement>('[data-id]');
+		if (!b || !li) return;
+		const st = li.querySelector<HTMLElement>('.a-status');
+		try {
+			if (b.dataset.act === 'borrar') {
+				if (!confirm('¿Borrar este archivo? Si está insertado en alguna nota, dejará de verse.')) return;
+				await api(`/api/admin/medios/${li.dataset.id}`, 'DELETE');
+				li.remove();
+			} else {
+				const m = await api<{ listo: boolean }>(`/api/admin/medios/${li.dataset.id}?comprobar=1`);
+				if (m.listo) location.reload();
+				else say(st, 'Aún se está procesando.', '');
+			}
+		} catch (err) {
+			say(st, (err as Error).message, 'error');
+		}
+	});
+</script>

@@ -1,0 +1,178 @@
+---
+import { asc } from 'drizzle-orm';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { db, tablas } from '../../db/index';
+import { puede } from '../../lib/roles';
+import { cuentasActivas, HORAS_INVITACION } from '../../lib/cuentas';
+
+export const prerender = false;
+if (!puede(Astro.locals.usuario?.rol, 'usuarios')) return Astro.redirect('/admin');
+
+const usuarios = await db.select().from(tablas.user).orderBy(asc(tablas.user.name));
+const activas = await cuentasActivas(db);
+const yo = Astro.locals.usuario!.id;
+const roles = tablas.rol.enumValues;
+const descripcion = { admin: 'Todo, incluidas las cuentas', editor: 'Notas, medios, moderación y mensajes', moderador: 'Solo moderación de aportes' };
+---
+
+<AdminLayout title="Usuarios" actual="usuarios">
+	<div class="a-card">
+		<h2>Nueva cuenta</h2>
+		<form id="form-usuario" class="nuevo" novalidate>
+			<label class="a-field"><span>Nombre</span><input name="name" required maxlength="120" /></label>
+			<label class="a-field"><span>Correo</span><input name="email" type="email" required /></label>
+			<label class="a-field">
+				<span>Rol</span>
+				<select name="rol">{roles.map((r) => <option value={r} selected={r === 'editor'}>{r} — {descripcion[r]}</option>)}</select>
+			</label>
+			<button class="a-btn a-btn--amarillo">Crear e invitar</button>
+		</form>
+		<p class="a-muted ayuda">
+			La persona recibe por correo un enlace para elegir su propia contraseña (sirve una vez y vence en {HORAS_INVITACION} horas).
+			Nadie más la conoce.
+		</p>
+		<p class="a-status" id="usuario-status" role="status" aria-live="polite"></p>
+	</div>
+
+	<div class="a-table-wrap tabla">
+		<table class="a-table">
+			<thead>
+				<tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Acciones</th></tr>
+			</thead>
+			<tbody>
+				{
+					usuarios.map((u) => (
+						<tr data-id={u.id}>
+							<td>
+								{u.name}
+								{u.id === yo && <span class="a-badge">Tú</span>}
+								{!activas.has(u.id) && <span class="a-badge a-badge--pend">Sin activar</span>}
+							</td>
+							<td>{u.email}</td>
+							<td>
+								<select class="a-input" data-rol aria-label={`Rol de ${u.name}`} disabled={u.id === yo}>
+									{roles.map((r) => <option selected={r === u.rol}>{r}</option>)}
+								</select>
+							</td>
+							<td class="acciones">
+								{u.id !== yo && (
+									<button class="a-btn a-btn--sm a-btn--ghost" data-act="restablecer">
+										{activas.has(u.id) ? 'Restablecer acceso' : 'Reenviar invitación'}
+									</button>
+								)}
+								{u.id !== yo && <button class="a-btn a-btn--sm a-btn--peligro" data-act="borrar">Borrar</button>}
+								<span class="a-status" role="status" />
+							</td>
+						</tr>
+					))
+				}
+			</tbody>
+		</table>
+	</div>
+</AdminLayout>
+
+<style>
+	.nuevo {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: 12px;
+		align-items: end;
+	}
+	.ayuda {
+		margin-top: 10px;
+		font-size: 13px;
+	}
+	.enlace {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin-top: 8px;
+	}
+	.enlace input {
+		flex: 1 1 280px;
+		min-width: 0;
+		font-family: ui-monospace, monospace;
+		font-size: 12px;
+	}
+	.tabla {
+		margin-top: 24px;
+	}
+	.acciones {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		align-items: center;
+	}
+	.a-table .a-input {
+		min-height: 34px;
+		padding: 2px 8px;
+	}
+</style>
+
+<script>
+	import { api, say } from '../../scripts/admin/api';
+
+	type Respuesta = { enviado: boolean; enlace?: string };
+
+	/** Sin correo configurado, el enlace se muestra una vez para entregarlo por un canal seguro */
+	function mostrarEnlace(donde: HTMLElement | null, r: Respuesta, quien: string) {
+		if (!donde) return;
+		if (r.enviado || !r.enlace) {
+			say(donde, `Enviamos el enlace a ${quien}.`, 'ok');
+			return;
+		}
+		say(donde, 'El correo no está configurado: entrega este enlace por un canal seguro. Sirve una sola vez y no se vuelve a mostrar.', 'ok');
+		const caja = document.createElement('div');
+		caja.className = 'enlace';
+		const input = Object.assign(document.createElement('input'), { className: 'a-input', readOnly: true, value: r.enlace });
+		const copiar = Object.assign(document.createElement('button'), { type: 'button', className: 'a-btn a-btn--sm', textContent: 'Copiar' });
+		copiar.addEventListener('click', () => navigator.clipboard.writeText(r.enlace!).then(() => (copiar.textContent = 'Copiado')));
+		caja.append(input, copiar);
+		donde.append(caja);
+	}
+
+	const form = document.getElementById('form-usuario') as HTMLFormElement;
+	const status = document.getElementById('usuario-status');
+	form.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		const d = Object.fromEntries(new FormData(form));
+		try {
+			const r = await api<Respuesta>('/api/admin/usuarios', 'POST', d);
+			mostrarEnlace(status, r, String(d.email));
+			form.reset();
+		} catch (err) {
+			say(status, (err as Error).message, 'error');
+		}
+	});
+
+	document.addEventListener('change', async (e) => {
+		const s = e.target as HTMLSelectElement;
+		if (!s.matches('[data-rol]')) return;
+		const tr = s.closest<HTMLElement>('[data-id]')!;
+		try {
+			await api(`/api/admin/usuarios/${tr.dataset.id}`, 'PATCH', { rol: s.value });
+			say(tr.querySelector('.a-status'), 'Rol actualizado', 'ok');
+		} catch (err) {
+			say(tr.querySelector('.a-status'), (err as Error).message, 'error');
+		}
+	});
+	document.addEventListener('click', async (e) => {
+		const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
+		const tr = b?.closest<HTMLElement>('[data-id]');
+		if (!b || !tr) return;
+		const st = tr.querySelector<HTMLElement>('.a-status');
+		try {
+			if (b.dataset.act === 'borrar') {
+				if (!confirm('¿Borrar esta cuenta? Sus notas se conservan.')) return;
+				await api(`/api/admin/usuarios/${tr.dataset.id}`, 'DELETE');
+				tr.remove();
+			} else {
+				if (!confirm('¿Restablecer el acceso? Su contraseña actual deja de funcionar, se cierran sus sesiones y recibe un enlace para poner una nueva.')) return;
+				const r = await api<Respuesta>(`/api/admin/usuarios/${tr.dataset.id}`, 'PATCH', { restablecer: true });
+				mostrarEnlace(st, r, tr.children[1]?.textContent?.trim() ?? 'su correo');
+			}
+		} catch (err) {
+			say(st, (err as Error).message, 'error');
+		}
+	});
+</script>

@@ -1,0 +1,70 @@
+---
+/** Formulario de subida. Al terminar emite el evento `medio-subido` (detail: MedioVista) sobre el <form>. */
+interface Props {
+	acepta?: 'imagen' | 'video' | 'ambos';
+	id?: string;
+}
+import { medios } from '../../lib/medios';
+
+const { acepta = 'ambos', id } = Astro.props;
+// Sin Cloudflare Stream, los videos propios están «disponibles próximamente»: solo imágenes
+const videos = !!medios.stream;
+const accept = !videos || acepta === 'imagen' ? 'image/*' : acepta === 'video' ? 'video/*' : 'image/*,video/*';
+---
+
+<form class="a-subir" data-subir {id} novalidate>
+	<label class="a-field">
+		<span>Archivo {!videos && <small>imágenes JPG, PNG, WebP, AVIF o GIF</small>}</span>
+		<input type="file" name="archivo" accept={accept} required />
+	</label>
+	<label class="a-field">
+		<span>Texto alternativo <small>qué se ve (para lectores de pantalla)</small></span>
+		<input type="text" name="alt" maxlength="300" />
+	</label>
+	<label class="a-field">
+		<span>Crédito <small>autor o fuente</small></span>
+		<input type="text" name="credito" maxlength="200" placeholder="Foto: …" />
+	</label>
+	<button type="submit" class="a-btn a-btn--amarillo">Subir</button>
+	<progress max="1" value="0" hidden></progress>
+	<p class="a-status" role="status" aria-live="polite"></p>
+</form>
+
+<script>
+	import { subirMedio } from '../../scripts/admin/subir';
+	import { say } from '../../scripts/admin/api';
+
+	document.querySelectorAll<HTMLFormElement>('form[data-subir]').forEach((form) => {
+		const status = form.querySelector<HTMLElement>('.a-status');
+		const bar = form.querySelector('progress')!;
+		form.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const input = form.elements.namedItem('archivo') as HTMLInputElement;
+			const file = input.files?.[0];
+			const alt = (form.elements.namedItem('alt') as HTMLInputElement).value.trim();
+			const credito = (form.elements.namedItem('credito') as HTMLInputElement).value.trim();
+			if (!file) return say(status, 'Elige un archivo.', 'error');
+			if (file.type.startsWith('image/') && alt.length < 5) return say(status, 'Describe la imagen en el texto alternativo (mínimo 5 caracteres).', 'error');
+			if (credito.length < 2) return say(status, 'Indica el crédito.', 'error');
+			const btn = form.querySelector('button')!;
+			btn.disabled = true;
+			bar.hidden = false;
+			bar.value = 0;
+			say(status, 'Subiendo…');
+			try {
+				const m = await subirMedio(file, { alt, credito }, (p) => {
+					bar.value = p;
+					say(status, `Subiendo… ${Math.round(p * 100)} %`);
+				});
+				form.reset();
+				say(status, m.listo ? 'Listo.' : 'Subido. Cloudflare Stream está procesando el video (unos minutos).', 'ok');
+				form.dispatchEvent(new CustomEvent('medio-subido', { detail: m, bubbles: true }));
+			} catch (err) {
+				say(status, (err as Error).message, 'error');
+			} finally {
+				btn.disabled = false;
+				bar.hidden = true;
+			}
+		});
+	});
+</script>

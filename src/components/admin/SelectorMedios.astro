@@ -1,0 +1,43 @@
+---
+/** Diálogo para elegir (o subir) una imagen o un video. Se controla con `elegirMedio()` de scripts/admin/selector. */
+import SubirMedio from './SubirMedio.astro';
+---
+
+<dialog class="a-dialog" id="selector-medios" aria-labelledby="sel-titulo">
+	<div class="a-dialog-head">
+		<h2 id="sel-titulo">Elegir medio</h2>
+		<button type="button" class="a-btn a-btn--sm" data-cerrar>Cerrar</button>
+	</div>
+	<div class="a-dialog-body">
+		<details class="sel-subir">
+			<summary class="a-btn a-btn--ghost a-btn--sm">Subir uno nuevo</summary>
+			<div class="sel-subir-body"><SubirMedio id="sel-form" /></div>
+		</details>
+		<div class="a-toolbar sel-buscar">
+			<input class="a-input" type="search" placeholder="Buscar por descripción o crédito" data-buscar aria-label="Buscar medios" />
+		</div>
+		<ul class="a-grid-medios" data-lista></ul>
+		<p class="a-status" data-estado role="status"></p>
+	</div>
+</dialog>
+
+<style>
+	.sel-subir {
+		margin-bottom: 16px;
+	}
+	.sel-subir summary {
+		list-style: none;
+	}
+	.sel-subir summary::-webkit-details-marker {
+		display: none;
+	}
+	.sel-subir-body {
+		margin-top: 12px;
+		padding: 16px;
+		background: #fff;
+		border-radius: var(--radius-m);
+	}
+	.sel-buscar .a-input {
+		max-width: 360px;
+	}
+</style>
