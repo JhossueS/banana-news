@@ -2,11 +2,15 @@
 import PageLayout from '../layouts/PageLayout.astro';
 import Icon, { type IconName } from '../components/Icon.astro';
 import { site } from '../data/site';
+import Turnstile from '../components/Turnstile.astro';
 
 const canales: { icon: IconName; titulo: string; texto: string; correo?: string; href?: string; enlace?: string }[] = [
-	{ icon: 'file-text', titulo: 'Redacción', texto: 'Datos, propuestas de temas y comunicados.', correo: site.correos.redaccion },
-	{ icon: 'briefcase', titulo: 'Publicidad', texto: 'Formatos, tarifas y kit de medios.', correo: site.correos.publicidad },
-	{ icon: 'shield-check', titulo: 'Correcciones y rectificaciones', texto: 'Si una nota tiene un error, indícanos cuál y en qué enlace.', correo: site.correos.correcciones },
+	{
+		icon: 'message-circle',
+		titulo: 'Escríbenos',
+		texto: 'Redacción, publicidad, correcciones o tus datos personales: un solo correo para todo. Si es una corrección, indícanos el enlace de la nota.',
+		correo: site.correos.redaccion,
+	},
 	{ icon: 'megaphone', titulo: 'Denuncias ciudadanas', texto: 'Para denunciar un hecho, usa el formulario de la portada. Puede ser anónimo.', href: '/#denuncias', enlace: 'Enviar una denuncia' },
 ];
 
@@ -55,10 +59,6 @@ const asuntos = [
 					<dd>{site.horario}</dd>
 				</div>
 				<div>
-					<dt>Teléfono</dt>
-					<dd>{site.telefono}</dd>
-				</div>
-				<div>
 					<dt>Dirección</dt>
 					<dd>{site.domicilio}</dd>
 				</div>
@@ -92,9 +92,10 @@ const asuntos = [
 					<input type="checkbox" name="acepto" required />
 					<span>
 						Acepto que Banana News use estos datos solo para responder mi mensaje, según los
-						<a href="/terminos-y-condiciones/">términos y condiciones</a>.
+						<a href="/terminos-y-condiciones/"> términos y condiciones</a>.
 					</span>
 				</label>
+				<Turnstile />
 				<div class="actions">
 					<button type="submit" class="btn">
 						Enviar mensaje
@@ -332,6 +333,9 @@ const asuntos = [
 </style>
 
 <script>
+	import { actions } from 'astro:actions';
+	import { conBoton, leerError, renovarTurnstile } from '../scripts/envio';
+
 	const form = document.getElementById('form-contacto') as HTMLFormElement | null;
 	const status = document.getElementById('contacto-status');
 	const asunto = document.getElementById('asunto') as HTMLSelectElement | null;
@@ -353,23 +357,38 @@ const asuntos = [
 		acepto: 'Necesitamos tu autorización para responderte.',
 	};
 
-	form?.addEventListener('submit', (e) => {
+	form?.addEventListener('submit', async (e) => {
 		e.preventDefault();
 		const fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[required]'));
+		const marcar = (f: Element) => {
+			f.setAttribute('aria-invalid', 'true');
+			f.closest('.check')?.setAttribute('data-invalid', '');
+		};
 		fields.forEach((f) => {
 			f.removeAttribute('aria-invalid');
 			f.closest('.check')?.removeAttribute('data-invalid');
 		});
 		const bad = fields.find((f) => !f.checkValidity());
 		if (bad) {
-			bad.setAttribute('aria-invalid', 'true');
-			bad.closest('.check')?.setAttribute('data-invalid', '');
+			marcar(bad);
 			bad.focus();
 			say(mensajes[bad.name] ?? 'Revisa los campos marcados.', 'error');
 			return;
 		}
-		// Sin servicio de recepción conectado todavía: confirmación local.
+		say('Enviando…', 'ok');
+		const { error } = await conBoton(form, () => actions.contacto(new FormData(form)));
+		renovarTurnstile(form);
+		if (error) {
+			const { campo, mensaje } = leerError(error);
+			const f = campo ? form.elements.namedItem(campo) : null;
+			if (f instanceof Element) {
+				marcar(f);
+				(f as HTMLElement).focus();
+			}
+			say(mensaje, 'error');
+			return;
+		}
 		form.reset();
-		say('Recibimos tu mensaje. Te responderemos a tu correo en días hábiles.', 'ok');
+		say('Recibimos tu mensaje. Te enviamos una confirmación a tu correo y te responderemos en días hábiles.', 'ok');
 	});
 </script>

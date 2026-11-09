@@ -1,0 +1,86 @@
+---
+/**
+ * Isotipo de la banana buscando con una lupa (empleos «Próximamente»).
+ * Mismo trazo que <Logo layout="isotipo" />; la banana usa currentColor.
+ * La lupa barre de lado a lado y las pupilas la siguen (sin animación si se prefiere menos movimiento).
+ */
+interface Props {
+	class?: string;
+	/** Ancho en px (el alto se calcula) */
+	width?: number;
+}
+const { class: className, width = 180 } = Astro.props;
+---
+
+<svg
+	class:list={['banana-buscando', className]}
+	viewBox="260 270 600 560"
+	width={width}
+	height={Math.round((width * 560) / 600)}
+	role="img"
+	aria-label="La banana de Banana News buscando con una lupa"
+	focusable="false"
+>
+	<path fill="currentColor" d="M490.75,788.43c-71-3.6-134.5-23.3-179.08-83.8-5.15-7-13.12-11.91-19.75-17.84-11.72-10.48-15.83-23-9.61-37.94a258,258,0,0,1,11.77-25.49c6-10.81,15.58-15.24,28.15-14.81a147.7,147.7,0,0,0,30.17-1.72c30.93-5.33,62.18-9.67,92.48-17.59C542.12,563.82,610.32,502.79,660,416.4c18.78-32.67,18.28-65.7,19.58-99.91.91-24.06,6.09-28.49,29.06-23.17,14.62,3.38,29.38,6.13,44,9.64C769.49,307,776.84,317.74,775,334.7c-1.68,15.37-3.62,30.72-4.92,46.12-.33,3.9.11,8.84,2.26,11.82,30,41.5,32.88,87.8,23.51,135.75-27,138.32-143.75,244.89-284,259.94C504.87,789.08,497.78,788.43,490.75,788.43Zm.71-44.56c12.1-1.24,24.29-1.9,36.29-3.8C637.81,722.64,732.68,629.24,754.29,515.7c7.15-37.55,3.34-72.9-17.91-105.12-3.23-4.9-10.8-8.37-16.86-9.32-2.68-.42-7.36,6.7-9.81,11.13-6.11,11.06-11.12,22.72-17.18,33.81-54,99-136,161.79-245.7,187.52-28.65,6.71-58.06,10.34-87.23,14.7-13.4,2-14.11,14-18.47,22.45-1.52,3,3.26,10.78,7,14.56C387.47,725.3,435.71,743.54,491.46,743.87Z" />
+	<g class="ojo">
+		<circle cx="520" cy="640" r="22" fill="var(--bn-hueso)" stroke="currentColor" stroke-width="8" />
+		<circle class="pupila" cx="526" cy="645" r="9" fill="currentColor" />
+	</g>
+	<g class="lupa">
+		<line x1="702" y1="672" x2="790" y2="760" stroke="currentColor" stroke-width="30" stroke-linecap="round" />
+		<circle cx="640" cy="610" r="78" fill="var(--bn-hueso)" stroke="currentColor" stroke-width="22" />
+		<g class="pupila">
+			<circle cx="652" cy="620" r="26" fill="currentColor" />
+			<circle cx="643" cy="611" r="8" fill="var(--bn-hueso)" />
+		</g>
+		<path d="M594 586a52 52 0 0 1 30-28" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity="0.9" />
+	</g>
+</svg>
+
+<style>
+	.banana-buscando {
+		display: block;
+		flex: none;
+		color: var(--bn-negro);
+		overflow: visible;
+	}
+	.lupa,
+	.pupila {
+		transform-box: view-box;
+		animation: barrer 4.8s ease-in-out infinite;
+	}
+	.pupila {
+		animation-name: mirar;
+	}
+	/* La lupa recorre el horizonte y las pupilas miran hacia donde va */
+	@keyframes barrer {
+		0%,
+		100% {
+			transform: translate(0, 0) rotate(0deg);
+		}
+		30% {
+			transform: translate(-26px, -10px) rotate(-4deg);
+		}
+		60% {
+			transform: translate(18px, 6px) rotate(3deg);
+		}
+	}
+	@keyframes mirar {
+		0%,
+		100% {
+			transform: translate(0, 0);
+		}
+		30% {
+			transform: translate(-10px, -4px);
+		}
+		60% {
+			transform: translate(6px, 2px);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.lupa,
+		.pupila {
+			animation: none;
+		}
+	}
+</style>

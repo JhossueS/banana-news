@@ -1,0 +1,36 @@
+---
+/** Notas de una firma: /autor/redaccion-banana-news/ y /autor/…/pagina/N/ */
+import ListadoNotas from '../../../components/ListadoNotas.astro';
+import { autorPorSlug, paginaNoticias } from '../../../lib/noticias';
+import { cachePublico } from '../../../lib/cache';
+import { leerPagina } from '../../../lib/paginacion';
+import { absoluta, esFirmaInstitucional, hrefAutor, organizacion } from '../../../lib/seo';
+
+export const prerender = false;
+
+const a = await autorPorSlug(Astro.params.autor ?? '');
+const pagina = leerPagina(Astro.params.pagina);
+if (!a || pagina === null) return Astro.rewrite('/404');
+
+const { notas, paginas } = await paginaNoticias({ pagina, autor: a.autor });
+if (pagina > paginas) return Astro.rewrite('/404');
+cachePublico(Astro.response.headers, 600);
+
+const url = absoluta(hrefAutor(a.autor));
+// La firma institucional ya es la organización (en la portada); una persona se describe como Person
+const schema = esFirmaInstitucional(a.autor)
+	? []
+	: [{ '@type': 'Person', '@id': `${url}#persona`, name: a.autor, url, worksFor: organizacion() }];
+---
+
+<ListadoNotas
+	title={a.autor}
+	group="Firma"
+	deck={`${a.notas === 1 ? 'Una nota publicada' : `${a.notas} notas publicadas`} en Banana News. Conoce cómo trabajamos en «Quiénes somos».`}
+	base={hrefAutor(a.autor)}
+	crumbs={[{ label: 'Noticias', href: '/noticias/' }]}
+	{pagina}
+	{paginas}
+	{notas}
+	{schema}
+/>

@@ -1,6 +1,4 @@
 ---
-import { getCollection, render, type CollectionEntry } from 'astro:content';
-import { Image, getImage } from 'astro:assets';
 import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
@@ -10,46 +8,66 @@ import NewsCard from '../../components/NewsCard.astro';
 import Icon from '../../components/Icon.astro';
 import Crumbs from '../../components/Crumbs.astro';
 import Prose from '../../components/Prose.astro';
+import CmsImage from '../../components/CmsImage.astro';
+import { getNoticiaPorSlug, relacionadas as buscarRelacionadas } from '../../lib/noticias';
+import { cachePublico } from '../../lib/cache';
+import { absoluta, hrefAutor, hrefSeccion, esFirmaInstitucional, organizacion } from '../../lib/seo';
 
-export async function getStaticPaths() {
-	const noticias = await getCollection('noticias');
-	return noticias.map((noticia) => ({ params: { slug: noticia.id }, props: { noticia } }));
-}
+export const prerender = false;
 
-interface Props {
-	noticia: CollectionEntry<'noticias'>;
-}
+const n = await getNoticiaPorSlug(Astro.params.slug ?? '');
+if (!n) return Astro.rewrite('/404');
 
-const { noticia } = Astro.props;
-const n = noticia.data;
-const { Content } = await render(noticia);
+// Cada visita la sirve el CDN; la base solo se consulta al vencer s-maxage (más corto en última hora / en vivo)
+const vivo = n.estado === 'ultima-hora' || n.estado === 'en-vivo';
+cachePublico(Astro.response.headers, vivo ? 60 : 300);
 
 const fmtFecha = new Intl.DateTimeFormat('es-EC', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Guayaquil' });
 const fmtHora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Guayaquil' });
 const fecha = `${fmtFecha.format(n.fecha)} · ${fmtHora.format(n.fecha)}`;
 const actualizado = n.actualizado ? `${fmtFecha.format(n.actualizado)} · ${fmtHora.format(n.actualizado)}` : null;
 
-const palabras = (noticia.body ?? '').trim().split(/\s+/).length;
-const minutos = Math.max(1, Math.round(palabras / 220));
+const relacionadas = await buscarRelacionadas(n, 3);
+const ruta = `/noticias/${n.slug}/`;
+const url = absoluta(ruta);
+const og = n.imagen?.src;
+const modificado = n.actualizado ?? n.modificado;
+const autorUrl = absoluta(hrefAutor(n.autor));
 
-const relacionadas = (await getCollection('noticias', (o) => o.id !== noticia.id))
-	.sort((a, b) => Number(a.data.seccion !== n.seccion) - Number(b.data.seccion !== n.seccion) || b.data.fecha.valueOf() - a.data.fecha.valueOf())
-	.slice(0, 3);
-
-const og = await getImage({ src: n.imagen, width: 1200, format: 'jpg' });
-const url = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : Astro.url.href;
+const articulo = {
+	'@type': 'NewsArticle',
+	'@id': `${url}#nota`,
+	mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+	url,
+	headline: n.titulo.length > 110 ? `${n.titulo.slice(0, 107).trimEnd()}…` : n.titulo,
+	description: n.bajada,
+	image: og ? [{ '@type': 'ImageObject', url: absoluta(og), width: n.imagen?.width, height: n.imagen?.height, caption: n.imagen?.alt || undefined }] : undefined,
+	datePublished: n.fecha.toISOString(),
+	dateModified: (modificado > n.fecha ? modificado : n.fecha).toISOString(),
+	articleSection: n.seccion,
+	inLanguage: 'es-EC',
+	wordCount: n.palabras,
+	contentLocation: n.lugar ? { '@type': 'Place', name: n.lugar } : undefined,
+	author: esFirmaInstitucional(n.autor)
+		? { '@type': 'Organization', name: n.autor, url: autorUrl }
+		: { '@type': 'Person', name: n.autor, url: autorUrl },
+	publisher: organizacion(),
+	isAccessibleForFree: true,
+};
 const shareText = encodeURIComponent(`${n.titulo} · Banana News`);
 const shareUrl = encodeURIComponent(url);
 ---
 
-<Layout title={`${n.titulo} · Banana News`} description={n.bajada} type="article" image={og.src}>
-	<meta slot="head" property="article:published_time" content={n.fecha.toISOString()} />
+<Layout title={`${n.titulo} · Banana News`} description={n.bajada} type="article" image={og} imageAlt={n.imagen?.alt} canonical={ruta} schema={[articulo]}>
+	<meta slot="head" property="article:published_time" content={articulo.datePublished} />
+	<meta slot="head" property="article:modified_time" content={articulo.dateModified} />
 	<meta slot="head" property="article:section" content={n.seccion} />
+	<meta slot="head" property="article:author" content={autorUrl} />
 
 	<Header />
 
 	<main id="contenido" class="wrap main">
-		<Crumbs items={[{ label: 'Noticias', href: '/#noticias' }, { label: n.seccion }]} />
+		<Crumbs items={[{ label: 'Noticias', href: '/noticias/' }, { label: n.seccion, href: hrefSeccion(n.seccion) }]} />
 
 		<article class="nota" aria-labelledby="titulo">
 			<header class="head">
@@ -62,13 +80,13 @@ const shareUrl = encodeURIComponent(url);
 
 				<div class="meta">
 					<div class="byline">
-						<span class="author">Por {n.autor}</span>
+						<span class="author">Por <a href={hrefAutor(n.autor)} rel="author">{n.autor}</a></span>
 						<span class="meta-row">
 							<time datetime={n.fecha.toISOString()}>{fecha}</time>
 							<span aria-hidden="true">·</span>
 							<span class="meta-icon"><Icon name="map-pin" size={14} />{n.lugar}</span>
 							<span aria-hidden="true">·</span>
-							<span class="meta-icon"><Icon name="clock" size={14} />{minutos} min de lectura</span>
+							<span class="meta-icon"><Icon name="clock" size={14} />{n.minutos} min de lectura</span>
 						</span>
 						{actualizado && <span class="meta-row">Actualizado: <time datetime={n.actualizado!.toISOString()}>{actualizado}</time></span>}
 					</div>
@@ -95,22 +113,25 @@ const shareUrl = encodeURIComponent(url);
 			</header>
 
 			<figure class="hero">
-				<Image
-					src={n.imagen}
-					alt={n.alt}
+				<CmsImage
+					image={n.imagen}
 					class="hero-img"
-					widths={[640, 960, 1280, 1600]}
 					sizes="(min-width: 1280px) 1216px, calc(100vw - 2 * var(--gutter))"
 					loading="eager"
 					fetchpriority="high"
 				/>
-				<figcaption><Icon name="camera" size={14} />{n.alt}. {n.credito}.</figcaption>
+				{(n.imagen?.alt || n.credito) && (
+					<figcaption>
+						<Icon name="camera" size={14} />
+						{[n.imagen?.alt, n.credito].filter(Boolean).join('. ')}.
+					</figcaption>
+				)}
 			</figure>
 
 			<div class="layout">
 				<div class="body">
 					{
-						n.claves && (
+						n.claves.length > 0 && (
 							<aside class="claves" aria-labelledby="h-claves">
 								<h2 id="h-claves">Sin cáscara</h2>
 								<ul>
@@ -122,7 +143,7 @@ const shareUrl = encodeURIComponent(url);
 						)
 					}
 					<Prose>
-						<Content />
+						<Fragment set:html={n.cuerpoHtml} />
 					</Prose>
 
 					<footer class="end">
@@ -154,15 +175,7 @@ const shareUrl = encodeURIComponent(url);
 					</div>
 					<div class="related-grid">
 						{relacionadas.map((r) => (
-							<NewsCard
-								variant="horizontal"
-								image={r.data.imagen}
-								alt={r.data.alt}
-								kicker={r.data.seccion}
-								title={r.data.titulo}
-								deck={r.data.bajada}
-								href={`/noticias/${r.id}/`}
-							/>
+							<NewsCard variant="horizontal" image={r.imagen} kicker={r.seccion} title={r.titulo} deck={r.bajada} href={`/noticias/${r.slug}/`} />
 						))}
 					</div>
 				</section>
@@ -245,6 +258,11 @@ const shareUrl = encodeURIComponent(url);
 		font-size: 15px;
 		font-weight: 800;
 	}
+	.author a {
+		color: inherit;
+		text-decoration-color: var(--bn-amarillo);
+		text-decoration-thickness: 3px;
+	}
 	.meta-row {
 		display: flex;
 		flex-wrap: wrap;
@@ -300,7 +318,7 @@ const shareUrl = encodeURIComponent(url);
 		flex-direction: column;
 		gap: 10px;
 	}
-	.hero-img {
+	.hero :global(.hero-img) {
 		width: 100%;
 		height: auto;
 		aspect-ratio: 16 / 9;

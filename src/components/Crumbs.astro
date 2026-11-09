@@ -1,9 +1,25 @@
 ---
+import { absoluta, jsonLd } from '../lib/seo';
+
 interface Props {
 	items: { label: string; href?: string }[];
 }
 const { items } = Astro.props;
+
+// El último paso (la página actual) no tiene enlace: su URL es la de la página
+const migas = {
+	'@context': 'https://schema.org',
+	'@type': 'BreadcrumbList',
+	itemListElement: [{ label: 'Inicio', href: '/' }, ...items].map((it, i) => ({
+		'@type': 'ListItem',
+		position: i + 1,
+		name: it.label,
+		item: absoluta(it.href ?? Astro.url.pathname),
+	})),
+};
 ---
+
+<script type="application/ld+json" set:html={jsonLd(migas)} />
 
 <nav class="crumbs" aria-label="Ruta">
 	<ol>

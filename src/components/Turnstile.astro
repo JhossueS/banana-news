@@ -1,0 +1,35 @@
+---
+/**
+ * Verificación antirobots de Cloudflare + honeypot. Va dentro de cada <form>:
+ * agrega los campos `cf-turnstile-response` y `sitio_web` que validan las actions.
+ */
+import { TURNSTILE_SITE_KEY } from 'astro:env/client';
+
+interface Props {
+	theme?: 'light' | 'dark' | 'auto';
+}
+const { theme = 'light' } = Astro.props;
+---
+
+<div class="ts">
+	<div class="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY} data-language="es" data-size="flexible" data-theme={theme}></div>
+	<label class="hp" aria-hidden="true">
+		No llenes este campo
+		<input type="text" name="sitio_web" tabindex="-1" autocomplete="off" />
+	</label>
+</div>
+
+<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<style>
+	.ts {
+		min-height: 65px;
+	}
+	.hp {
+		position: absolute;
+		left: -9999px;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+	}
+</style>

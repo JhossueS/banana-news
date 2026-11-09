@@ -1,14 +1,19 @@
 ---
 import Logo from './Logo.astro';
-import { paginasMedio, paginasLegales } from '../data/site';
+import { paginasMedio, paginasLegales, redesActivas } from '../data/site';
+import { secciones } from '../lib/seo';
 
 const cols = [
 	{
-		title: 'Secciones',
+		title: 'Noticias',
+		links: [{ label: 'Últimas noticias', href: '/noticias/' }, ...secciones.map((s) => ({ label: s.nombre, href: s.href }))],
+	},
+	{
+		title: 'Participa',
 		links: [
-			{ label: 'Noticias', href: '/#noticias' },
-			{ label: 'Denuncias', href: '/#denuncias' },
-			{ label: 'Empleos', href: '/#empleos' },
+			{ label: 'Envía tu denuncia', href: '/#denuncias' },
+			{ label: 'Publica en el mapa', href: '/publicar/' },
+			{ label: 'RSS', href: '/rss.xml' },
 		],
 	},
 	{
@@ -21,7 +26,6 @@ const cols = [
 	},
 ];
 
-const social = ['Instagram', 'Facebook', 'TikTok', 'X'];
 ---
 
 <footer class="footer on-dark">
@@ -49,15 +53,19 @@ const social = ['Instagram', 'Facebook', 'TikTok', 'X'];
 			</nav>
 		</div>
 		<div class="bottom">
-			<ul class="social">
-				{
-					social.map((s) => (
-						<li>
-							<a href="#">{s}</a>
-						</li>
-					))
-				}
-			</ul>
+			{
+				redesActivas.length > 0 && (
+					<ul class="social">
+						{redesActivas.map((r) => (
+							<li>
+								<a href={r.url} rel="me noopener" target="_blank">
+									{r.nombre}
+								</a>
+							</li>
+						))}
+					</ul>
+				)
+			}
 			<p class="copy">© 2026 Banana News</p>
 		</div>
 	</div>

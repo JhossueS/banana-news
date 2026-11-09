@@ -1,4 +1,16 @@
-import { mapNews, type MapNews } from '../data/map-news';
+import { actions } from 'astro:actions';
+import type { MapNews } from '../lib/types';
+import { conBoton, leerError, renovarTurnstile } from './envio';
+
+/** Puntos que el servidor embebe en la página (#map-data) y que se refrescan desde /api/publica/mapa */
+let mapNews: MapNews[] = (() => {
+	try {
+		return JSON.parse(document.getElementById('map-data')?.textContent || '[]') as MapNews[];
+	} catch {
+		return [];
+	}
+})();
+const REFRESCO_MS = 60_000;
 
 interface Prov {
 	c: string;
@@ -76,7 +88,7 @@ const statusOf = (n: MapNews) =>
 		? ({ label: 'Última hora', ic: 'zap', cls: 'urgent' } as const)
 		: n.verificada
 			? ({ label: 'Verificada', ic: 'shield-check', cls: 'ok' } as const)
-			: ({ label: 'En verificación', ic: 'clock', cls: 'pending' } as const);
+			: ({ label: 'Sin verificar', ic: 'clock', cls: 'pending' } as const);
 const pinColor = (n: MapNews) => (n.urgent ? CORAL : n.verificada ? AMARILLO : '#FFFFFF');
 
 function initMap(root: HTMLElement) {
@@ -111,8 +123,12 @@ function initMap(root: HTMLElement) {
 	let drag: { x: number; y: number; vb: Box; w: number } | null = null;
 	let dragged = false;
 
-	const counts: Record<string, number> = {};
-	mapNews.forEach((n) => (counts[n.c] = (counts[n.c] || 0) + 1));
+	let counts: Record<string, number> = {};
+	const recontar = () => {
+		counts = {};
+		mapNews.forEach((n) => (counts[n.c] = (counts[n.c] || 0) + 1));
+	};
+	recontar();
 
 	const provByCode = (c: string) => geo?.provinces.find((p) => p.c === c) ?? null;
 	const cantonsOf = (c: string) => geo?.cantons.filter((k) => k.p === c) ?? [];
@@ -315,9 +331,11 @@ function initMap(root: HTMLElement) {
 		}
 		const st = statusOf(n);
 		const pn = provByCode(n.c);
-		const more = n.verificada
+		const more = n.nota
 			? `<a class="d-read" href="/noticias/${encodeURIComponent(n.nota)}/">Leer la noticia completa${icon('arrow-right', 18, 2.25)}</a>`
-			: '<p class="d-note">Estamos verificando esta información. Cuando se confirme, podrás leer la nota completa.</p>';
+			: n.verificada
+				? '<p class="d-note">La redacción verificó esta información.</p>'
+				: '<p class="d-note"><b>Enviado por un lector.</b> La redacción aún no lo verifica. Cuando se confirme, podrás leer la nota completa.</p>';
 		detail.innerHTML = `<span class="d-status d-status--${st.cls}">${icon(st.ic)}${st.label}</span><span class="d-kicker">${esc(n.tag)}</span><h3 class="d-title">${esc(n.title)}</h3><span class="d-place">${icon('map-pin')}${esc(n.city)}${pn ? `, ${esc(pn.n)}` : ''}</span>${more}`;
 	}
 
@@ -457,7 +475,8 @@ function initMap(root: HTMLElement) {
 		const t = e.target as Element;
 		const pin = t.closest<SVGGElement>('.pin');
 		if (pin) {
-			const n = mapNews.find((x) => x.id === pin.dataset.id)!;
+			const n = mapNews.find((x) => x.id === pin.dataset.id);
+			if (!n) return;
 			sel = n.id;
 			if (prov !== n.c) openProv(n.c, true);
 			else {
@@ -522,13 +541,13 @@ function initMap(root: HTMLElement) {
 		root.querySelector<HTMLSelectElement>('[data-canton]')?.focus();
 	});
 
-	formEl?.addEventListener('submit', (e) => {
+	formEl?.addEventListener('submit', async (e) => {
 		if (!btnPublish || !publishStatus) return;
 		e.preventDefault();
 		publishStatus.dataset.kind = '';
 		const title = formEl.elements.namedItem('titular') as HTMLInputElement;
 		title.removeAttribute('aria-invalid');
-		if (btnPublish.disabled) {
+		if (btnPublish.disabled || sel !== 'custom' || !custom?.inside || !custom.code) {
 			publishStatus.textContent = 'Primero elige un punto dentro de Ecuador en el mapa.';
 			publishStatus.dataset.kind = 'error';
 			return;
@@ -540,11 +559,52 @@ function initMap(root: HTMLElement) {
 			publishStatus.dataset.kind = 'error';
 			return;
 		}
-		// Sin servicio de recepción conectado todavía: confirmación local.
+		const fd = new FormData(formEl);
+		fd.set('lat', String(custom.lat));
+		fd.set('lon', String(custom.lon));
+		fd.set('provincia', custom.code.slice(0, 2));
+		fd.set('canton', custom.canton ?? '');
+		publishStatus.textContent = 'Enviando…';
+		const { error } = await conBoton(formEl, () => actions.publicarMapa(fd));
+		renovarTurnstile(formEl);
+		// El botón depende de la ubicación elegida, no del envío
+		renderInfo();
+		if (error) {
+			const { campo, mensaje } = leerError(error);
+			const f = campo ? formEl.elements.namedItem(campo) : null;
+			if (f instanceof HTMLElement) {
+				f.setAttribute('aria-invalid', 'true');
+				f.focus();
+			}
+			publishStatus.textContent = mensaje;
+			publishStatus.dataset.kind = 'error';
+			return;
+		}
 		formEl.reset();
-		publishStatus.textContent = 'Recibimos tu noticia. Un editor la revisará antes de publicarla en el mapa.';
+		publishStatus.innerHTML = 'Listo: tu noticia ya aparece en el <a href="/#mapa">mapa</a> como <b>sin verificar</b>. La redacción la revisará.';
 		publishStatus.dataset.kind = 'ok';
 	});
+
+	/** `ver`: refresca los puntos sin recargar la página */
+	async function refrescar() {
+		if (document.hidden) return;
+		try {
+			const r = await fetch('/api/publica/mapa', { headers: { accept: 'application/json' } });
+			if (!r.ok) return;
+			mapNews = (await r.json()) as MapNews[];
+			recontar();
+			if (sel !== 'none' && !mapNews.some((n) => n.id === sel)) sel = (prov ? mapNews.find((n) => n.c === prov)?.id : mapNews[0]?.id) ?? 'none';
+			renderStatic();
+			renderView();
+			renderPanels();
+		} catch {
+			/* sin conexión: se mantienen los puntos actuales */
+		}
+	}
+	if (mode === 'ver') {
+		setInterval(refrescar, REFRESCO_MS);
+		document.addEventListener('visibilitychange', () => !document.hidden && refrescar());
+	}
 
 	let ro: ResizeObserver | null = null;
 	if ('ResizeObserver' in window) {

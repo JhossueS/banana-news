@@ -1,19 +1,36 @@
 ---
 import '../styles/global.css';
+import { absoluta, jsonLd, LEMA, NOMBRE_SITIO, OG_DEFECTO } from '../lib/seo';
 
 interface Props {
 	title?: string;
 	description?: string;
 	type?: 'website' | 'article';
-	/** URL de la imagen para redes sociales */
+	/** URL de la imagen para redes sociales (por defecto, la tarjeta de la marca) */
 	image?: string;
+	/** Texto alternativo de la imagen para redes */
+	imageAlt?: string;
+	/** Ruta canónica; por defecto, la ruta actual sin parámetros */
+	canonical?: string;
+	/** Páginas que no deben aparecer en buscadores */
+	noindex?: boolean;
+	/** Objetos JSON-LD (schema.org) de la página */
+	schema?: Record<string, unknown>[];
 }
 const {
-	title = 'Banana News · La noticia sin cáscara',
-	description = 'Medio digital ecuatoriano. Lo importante, sin ruido: política, economía, ciudad y ambiente, con denuncias ciudadanas y un mapa de noticias de las 24 provincias.',
+	title = `${NOMBRE_SITIO}: noticias de Ecuador sin cáscara`,
+	description = 'Medio digital ecuatoriano: política, economía, ciudad y ambiente, con denuncias ciudadanas y un mapa de noticias de las 24 provincias.',
 	type = 'website',
 	image,
+	imageAlt,
+	canonical = Astro.url.pathname,
+	noindex = false,
+	schema = [],
 } = Astro.props;
+
+const url = absoluta(canonical);
+const og = absoluta(image ?? OG_DEFECTO);
+const ogAlt = image ? imageAlt : `${NOMBRE_SITIO} · ${LEMA}`;
 ---
 
 <!doctype html>
@@ -23,16 +40,30 @@ const {
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" sizes="48x48" />
+		<link rel="apple-touch-icon" href="/logo-512.png" />
 		<meta name="theme-color" content="#171717" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 		<meta name="description" content={description} />
+		<meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'} />
+		{!noindex && <link rel="canonical" href={url} />}
+		<link rel="alternate" type="application/rss+xml" title={NOMBRE_SITIO} href="/rss.xml" />
+
+		<meta property="og:site_name" content={NOMBRE_SITIO} />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
 		<meta property="og:type" content={type} />
+		<meta property="og:url" content={url} />
 		<meta property="og:locale" content="es_EC" />
-		{image && <meta property="og:image" content={new URL(image, Astro.url)} />}
-		{image && <meta name="twitter:card" content="summary_large_image" />}
+		<meta property="og:image" content={og} />
+		{!image && <meta property="og:image:width" content="1200" />}
+		{!image && <meta property="og:image:height" content="630" />}
+		{ogAlt && <meta property="og:image:alt" content={ogAlt} />}
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={og} />
+		{schema.map((s) => <script type="application/ld+json" set:html={jsonLd({ '@context': 'https://schema.org', ...s })} />)}
 		<slot name="head" />
 	</head>
 	<body>

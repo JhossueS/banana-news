@@ -2,12 +2,13 @@
 import Tag from './Tag.astro';
 import Icon from './Icon.astro';
 import StatusPill from './StatusPill.astro';
+import Turnstile from './Turnstile.astro';
 
-const recientes = [
-	{ kind: 'verificado', label: undefined, title: 'Vecinos reportan un bache que lleva meses sin reparar', place: 'Guayaquil, Guayas' },
-	{ kind: 'contexto', label: 'En revisión', title: 'Cortes de agua sin aviso en el sector norte', place: 'Quito, Pichincha' },
-	{ kind: 'verificado', label: undefined, title: 'Paradero sin techo frente a la escuela del barrio', place: 'Cuenca, Azuay' },
-] as const;
+interface Props {
+	/** Últimas denuncias no rechazadas (ver `denunciasRecientes` en src/lib/noticias.ts) */
+	recientes: { id: string; titulo: string; lugar: string; estado: 'sin-verificar' | 'verificado' | 'rechazado' }[];
+}
+const { recientes } = Astro.props;
 ---
 
 <section id="denuncias" class="report" aria-labelledby="h-denuncia">
@@ -25,7 +26,7 @@ const recientes = [
 			<h2 id="h-denuncia" class="h">
 				¿Viste algo que debe saberse? <span class="hl">Cuéntanos.</span>
 			</h2>
-			<p class="lede">Verificamos cada denuncia antes de publicarla. Puedes enviarla de forma anónima.</p>
+			<p class="lede">Tu denuncia aparece de inmediato como <b>sin verificar</b> y la redacción la revisa. Puedes enviarla de forma anónima.</p>
 
 			<form class="form" id="form-denuncia" novalidate>
 				<label class="field">
@@ -36,6 +37,11 @@ const recientes = [
 					<span>¿Dónde?</span>
 					<input type="text" name="lugar" required autocomplete="off" placeholder="Ciudad, barrio o dirección" />
 				</label>
+				<label class="field">
+					<span>Tu contacto <em class="opt">(opcional, no se publica)</em></span>
+					<input type="text" name="contacto" autocomplete="email" placeholder="Correo o teléfono, si quieres que te contactemos" />
+				</label>
+				<Turnstile theme="dark" />
 				<div class="actions">
 					<input type="file" id="adjunto" name="adjunto" accept="image/*,video/*" hidden />
 					<button type="button" class="btn btn--ghost" id="btn-adjunto">
@@ -53,22 +59,24 @@ const recientes = [
 
 		<div class="col-list">
 			<h3 class="list-title">Denuncias recientes</h3>
-			<ul class="list">
-				{
-					recientes.map((r) => (
-						<li class="item">
-							<StatusPill kind={r.kind} label={r.label} inverse />
-							<a href="#" class="item-title">
-								{r.title}
-							</a>
-							<span class="place">
-								<Icon name="map-pin" size={14} />
-								{r.place}
-							</span>
-						</li>
-					))
-				}
-			</ul>
+			{
+				recientes.length ? (
+					<ul class="list">
+						{recientes.map((r) => (
+							<li class="item">
+								<StatusPill kind={r.estado === 'verificado' ? 'verificado' : 'contexto'} label={r.estado === 'verificado' ? undefined : 'Sin verificar'} inverse />
+								<p class="item-title">{r.titulo}</p>
+								<span class="place">
+									<Icon name="map-pin" size={14} />
+									{r.lugar}
+								</span>
+							</li>
+						))}
+					</ul>
+				) : (
+					<p class="empty">Aún no hay denuncias. Sé el primero en contarnos qué pasa en tu barrio.</p>
+				)
+			}
 		</div>
 	</div>
 </section>
@@ -306,8 +314,16 @@ const recientes = [
 		text-decoration-color: var(--bn-amarillo);
 		text-decoration-thickness: 2px;
 	}
-	.item-title:hover {
-		text-decoration-line: underline;
+	.empty {
+		padding: 16px 0;
+		font-size: 15px;
+		color: var(--bn-gris-400);
+		border-top: 1px solid var(--bn-gris-600);
+	}
+	.opt {
+		font-style: normal;
+		font-weight: 500;
+		color: var(--bn-gris-400);
 	}
 	.place {
 		display: inline-flex;
@@ -361,6 +377,9 @@ const recientes = [
 </style>
 
 <script>
+	import { actions } from 'astro:actions';
+	import { conBoton, leerError, renovarTurnstile } from '../scripts/envio';
+
 	const form = document.getElementById('form-denuncia') as HTMLFormElement | null;
 	const status = document.getElementById('denuncia-status');
 	const file = document.getElementById('adjunto') as HTMLInputElement | null;
@@ -378,7 +397,7 @@ const recientes = [
 		status.dataset.kind = kind;
 	};
 
-	form?.addEventListener('submit', (e) => {
+	form?.addEventListener('submit', async (e) => {
 		e.preventDefault();
 		const fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[required], textarea[required]'));
 		fields.forEach((f) => f.removeAttribute('aria-invalid'));
@@ -394,9 +413,26 @@ const recientes = [
 			);
 			return;
 		}
-		// Sin servicio de recepción conectado todavía: confirmación local.
+		const f = file?.files?.[0];
+		if (f && f.size > 50 * 1024 * 1024) {
+			say('El archivo pesa más de 50 MB. Elige uno más liviano.', 'error');
+			return;
+		}
+		say(f ? 'Enviando tu denuncia y el archivo…' : 'Enviando…', 'ok');
+		const { error } = await conBoton(form, () => actions.denuncia(new FormData(form)));
+		renovarTurnstile(form);
+		if (error) {
+			const { campo, mensaje } = leerError(error);
+			const el = campo ? form.elements.namedItem(campo) : null;
+			if (el instanceof HTMLElement) {
+				el.setAttribute('aria-invalid', 'true');
+				el.focus();
+			}
+			say(mensaje, 'error');
+			return;
+		}
 		form.reset();
 		if (fileLabel) fileLabel.textContent = 'Adjuntar foto o video';
-		say('Recibimos tu denuncia. La verificaremos antes de publicarla.', 'ok');
+		say('Recibimos tu denuncia. Ya aparece como «sin verificar» y la redacción la revisará.', 'ok');
 	});
 </script>

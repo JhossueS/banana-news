@@ -1,20 +1,21 @@
 ---
 /** Mapa de noticias de la portada: solo lectura. Publicar vive en /publicar/. */
-import { getCollection } from 'astro:content';
 import Tag from './Tag.astro';
 import Icon from './Icon.astro';
 import MapCanvas from './MapCanvas.astro';
-import { mapNews } from '../data/map-news';
+import type { MapNews } from '../lib/types';
 
-// Una noticia verificada debe enlazar a una nota que exista
-const notas = new Set((await getCollection('noticias')).map((n) => n.id));
-const rotas = mapNews.filter((n) => n.verificada && !notas.has(n.nota));
-if (rotas.length) {
-	throw new Error(`map-news: notas inexistentes en la colección "noticias": ${rotas.map((n) => `${n.id} → ${n.nota}`).join(', ')}`);
+interface Props {
+	/** Puntos iniciales; el script los refresca desde /api/publica/mapa */
+	puntos: MapNews[];
 }
+const { puntos } = Astro.props;
+// JSON dentro de <script>: escapar «<» para que nadie pueda cerrar la etiqueta desde un titular
+const datos = JSON.stringify(puntos).replace(/</g, '\\u003c');
 ---
 
 <section id="mapa" class="nmap map-section" data-mode="ver" aria-labelledby="h-mapa">
+	<script type="application/json" id="map-data" set:html={datos} />
 	<div class="head">
 		<div class="head-text">
 			<div class="title-row">
@@ -26,7 +27,7 @@ if (rotas.length) {
 		<ul class="legend" aria-label="Leyenda del mapa">
 			<li><span class="dot dot--ok"></span>Verificada</li>
 			<li><span class="dot dot--urgent"></span>Última hora</li>
-			<li><span class="dot dot--pending"></span>En verificación</li>
+			<li><span class="dot dot--pending"></span>Sin verificar (enviada por lectores)</li>
 		</ul>
 	</div>
 

@@ -1,0 +1,30 @@
+---
+/** Portada de sección: /seccion/economia/ y /seccion/economia/pagina/N/ */
+import ListadoNotas from '../../../components/ListadoNotas.astro';
+import { paginaNoticias } from '../../../lib/noticias';
+import { cachePublico } from '../../../lib/cache';
+import { leerPagina } from '../../../lib/paginacion';
+import { seccionPorSlug } from '../../../lib/seo';
+
+export const prerender = false;
+
+const s = seccionPorSlug(Astro.params.seccion ?? '');
+const pagina = leerPagina(Astro.params.pagina);
+if (!s || pagina === null) return Astro.rewrite('/404');
+
+const { notas, paginas } = await paginaNoticias({ pagina, seccion: s.nombre });
+if (pagina > paginas) return Astro.rewrite('/404');
+cachePublico(Astro.response.headers, 300);
+---
+
+<ListadoNotas
+	title={s.nombre === 'Ecuador' ? 'Noticias de Ecuador' : `Noticias de ${s.nombre.toLowerCase()}`}
+	group="Sección"
+	deck={s.descripcion}
+	base={s.href}
+	crumbs={[{ label: 'Noticias', href: '/noticias/' }]}
+	{pagina}
+	{paginas}
+	{notas}
+	vacio="Aún no hay notas en esta sección."
+/>

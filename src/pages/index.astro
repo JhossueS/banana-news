@@ -7,18 +7,39 @@ import NewsCard from '../components/NewsCard.astro';
 import ReportSection from '../components/ReportSection.astro';
 import NewsMap from '../components/NewsMap.astro';
 import Icon from '../components/Icon.astro';
+import BananaBuscando from '../components/BananaBuscando.astro';
+import { denunciasRecientes, listarNoticias, puntosMapa, ultimaHora } from '../lib/noticias';
+import { cachePublico } from '../lib/cache';
+import { absoluta, NOMBRE_SITIO, organizacion } from '../lib/seo';
+import { site } from '../data/site';
 
-import quito from '../assets/photos/quito-centro.jpg';
-import asamblea from '../assets/photos/asamblea-pleno.jpg';
-import economia from '../assets/photos/economia-oficina.jpg';
-import votacion from '../assets/photos/votacion.jpg';
+export const prerender = false;
+
+// La portada se genera en el servidor y el CDN la guarda 60 s (luego la renueva en segundo plano)
+cachePublico(Astro.response.headers, 60);
+
+const [notas, urgente, recientes, puntos] = await Promise.all([listarNoticias({ limit: 4 }), ultimaHora(), denunciasRecientes(3), puntosMapa()]);
+const [principal, ...laterales] = notas;
+const kindBarra = urgente?.estado === 'en-vivo' ? 'en-vivo' : 'ultima-hora';
+
+const schema = [
+	{ ...organizacion() },
+	{ '@type': 'WebSite', '@id': absoluta('/#sitio'), name: NOMBRE_SITIO, url: absoluta('/'), inLanguage: 'es-EC', publisher: { '@id': absoluta('/#organizacion') } },
+];
 ---
 
-<Layout>
+<Layout {schema}>
 	<Header />
 
 	<main id="contenido" class="wrap main">
-		<InfoBar kind="ultima-hora" href="/noticias/cotopaxi-actividad-moderada/">El Cotopaxi mantiene actividad moderada; autoridades monitorean la situación.</InfoBar>
+		<h1 class="sr-only">Banana News: noticias de Ecuador sin cáscara</h1>
+		{
+			urgente && (
+				<InfoBar kind={kindBarra} href={`/noticias/${urgente.slug}/`}>
+					{urgente.titulo}
+				</InfoBar>
+			)
+		}
 
 		<section id="noticias" class="news" aria-labelledby="h-noticias">
 			<div class="section-head">
@@ -26,68 +47,62 @@ import votacion from '../assets/photos/votacion.jpg';
 					<h2 id="h-noticias" class="h2">Noticias</h2>
 					<span class="underline" aria-hidden="true"></span>
 				</div>
-				<a href="#" class="see-all">
-					Ver todas
+				<a href="/noticias/" class="more">
+					Todas las noticias
 					<Icon name="arrow-right" size={18} />
 				</a>
 			</div>
-			<div class="news-grid">
-				<NewsCard
-					class="news-main"
-					variant="principal"
-					image={quito}
-					alt="Calle del centro histórico de Quito con fachadas coloniales"
-					tag="CIUDAD"
-					title="Quito redefine la agenda urbana"
-						href="/noticias/quito-agenda-urbana/"
-					deck="Conoce qué cambia en el centro histórico y a quiénes afecta."
-					priority
-				/>
-				<div class="news-side">
-					<NewsCard
-						variant="horizontal"
-						image={asamblea}
-						alt="Pleno de la Asamblea Nacional durante una sesión"
-						kicker="Política"
-						title="¿Qué aprobó la Asamblea?"
-						href="/noticias/que-aprobo-la-asamblea/"
-						deck="Las claves de la sesión, punto por punto."
-					/>
-					<NewsCard
-						variant="horizontal"
-						image={economia}
-						alt="Personas trabajando en una oficina"
-						kicker="Economía"
-						title="¿A dónde va la economía de Ecuador?"
-						href="/noticias/economia-ecuador-trimestre/"
-						deck="Datos y contexto para entender el trimestre."
-					/>
-					<NewsCard
-						variant="horizontal"
-						image={votacion}
-						alt="Ciudadanos votando en una urna"
-						kicker="Ecuador"
-						title="Lo que debes saber hoy"
-						href="/noticias/lo-que-debes-saber-hoy/"
-						deck="Cinco temas que marcan la agenda del país."
-					/>
-				</div>
-			</div>
+			{
+				principal ? (
+					<div class="news-grid">
+						<NewsCard
+							class="news-main"
+							variant="principal"
+							image={principal.imagen}
+							tag={principal.seccion.toUpperCase()}
+							title={principal.titulo}
+							href={`/noticias/${principal.slug}/`}
+							deck={principal.bajada}
+							priority
+						/>
+						<div class="news-side">
+							{laterales.map((n) => (
+								<NewsCard variant="horizontal" image={n.imagen} kicker={n.seccion} title={n.titulo} href={`/noticias/${n.slug}/`} deck={n.bajada} />
+							))}
+						</div>
+					</div>
+				) : (
+					<p class="news-empty">Pronto publicaremos las primeras noticias.</p>
+				)
+			}
 		</section>
 
-		<ReportSection />
+		<ReportSection recientes={recientes} />
 
-		<NewsMap />
+		<NewsMap puntos={puntos} />
 
-		<section id="empleos" class="jobs" aria-labelledby="h-empleos">
-			<div class="jobs-text">
-				<h2 id="h-empleos" class="jobs-title">Ofertas de trabajo en todo Ecuador</h2>
-			</div>
-			<a href="#" class="jobs-cta">
-				Ver ofertas
-				<Icon name="arrow-right" size={18} />
-			</a>
-		</section>
+		{
+			site.empleosUrl ? (
+				<section id="empleos" class="jobs" aria-labelledby="h-empleos">
+					<div class="jobs-text">
+						<h2 id="h-empleos" class="jobs-title">Ofertas de trabajo en todo Ecuador</h2>
+					</div>
+					<a href={site.empleosUrl} class="jobs-cta">
+						Ver ofertas
+						<Icon name="arrow-right" size={18} />
+					</a>
+				</section>
+			) : (
+				<section id="empleos" class="jobs jobs--pronto" aria-labelledby="h-empleos">
+					<BananaBuscando class="jobs-ilus" width={168} />
+					<div class="jobs-text">
+						<span class="jobs-pill">Próximamente</span>
+						<h2 id="h-empleos" class="jobs-title">Ofertas de trabajo en todo Ecuador</h2>
+						<p class="jobs-deck">Estamos buscando empleos en las 24 provincias. Muy pronto podrás encontrarlos aquí.</p>
+					</div>
+				</section>
+			)
+		}
 	</main>
 
 	<Footer />
@@ -102,6 +117,11 @@ import votacion from '../assets/photos/votacion.jpg';
 	}
 
 	/* Noticias */
+	.news-empty {
+		padding: 32px 0;
+		font-size: 17px;
+		color: var(--bn-gris-600);
+	}
 	.news {
 		display: flex;
 		flex-direction: column;
@@ -125,30 +145,30 @@ import votacion from '../assets/photos/votacion.jpg';
 		line-height: 1.06;
 		letter-spacing: -0.015em;
 	}
-	.underline {
-		width: 48px;
-		height: 6px;
-		background: var(--bn-amarillo);
-	}
-	.see-all {
+	.more {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
 		min-height: 44px;
-		font-size: 14px;
+		font-size: 15px;
 		font-weight: 700;
 		text-decoration: none;
 	}
-	.see-all :global(svg) {
-		transition: transform var(--dur-base) var(--ease-out);
-	}
-	.see-all:hover {
+	.more:hover {
 		text-decoration: underline;
 		text-decoration-color: var(--bn-amarillo);
 		text-decoration-thickness: 3px;
 	}
-	.see-all:hover :global(svg) {
+	.more :global(svg) {
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+	.more:hover :global(svg) {
 		transform: translateX(4px);
+	}
+	.underline {
+		width: 48px;
+		height: 6px;
+		background: var(--bn-amarillo);
 	}
 	.news-grid {
 		display: flex;
@@ -178,6 +198,38 @@ import votacion from '../assets/photos/votacion.jpg';
 		padding: clamp(20px, 3vw, 28px) clamp(20px, 3vw, 32px);
 		background: var(--bn-amarillo);
 	}
+	/* Próximamente: la banana busca con la lupa junto al texto */
+	.jobs--pronto {
+		flex-wrap: nowrap;
+		justify-content: flex-start;
+		gap: clamp(16px, 3vw, 32px);
+		overflow: hidden;
+	}
+	.jobs--pronto .jobs-text {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+		max-width: 52ch;
+	}
+	.jobs-pill {
+		display: inline-flex;
+		align-items: center;
+		min-height: 28px;
+		padding: 0 12px;
+		background: var(--bn-negro);
+		color: var(--bn-amarillo);
+		font-size: 12px;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		border-radius: 999px;
+	}
+	.jobs-deck {
+		font-size: 16px;
+		line-height: 1.45;
+		color: var(--bn-negro-800);
+	}
 	.jobs-title {
 		font-size: clamp(22px, 2.6vw, 26px);
 		font-weight: 800;
@@ -200,10 +252,10 @@ import votacion from '../assets/photos/votacion.jpg';
 	.jobs-cta :global(svg) {
 		transition: transform var(--dur-base) var(--ease-out);
 	}
-	.jobs-cta:hover {
+	a.jobs-cta:hover {
 		background: var(--bn-negro-700);
 	}
-	.jobs-cta:hover :global(svg) {
+	a.jobs-cta:hover :global(svg) {
 		transform: translateX(4px);
 	}
 	.jobs-cta:focus-visible {
@@ -225,6 +277,14 @@ import votacion from '../assets/photos/votacion.jpg';
 		.jobs-cta {
 			width: 100%;
 			justify-content: center;
+		}
+		.jobs--pronto {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+		.jobs--pronto :global(.jobs-ilus) {
+			width: 120px;
+			height: auto;
 		}
 	}
 </style>

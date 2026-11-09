@@ -1,22 +1,32 @@
-/**
- * Datos del medio que aparecen en las páginas institucionales y legales.
- * Los valores entre corchetes son marcadores: reemplázalos por los reales antes de publicar.
- */
+/** Datos del medio que aparecen en las páginas institucionales y legales. */
+const CORREO = 'contacto@banananews.news';
+
 export const site = {
 	nombre: 'Banana News',
-	razonSocial: '[RAZÓN SOCIAL]',
-	ruc: '[RUC]',
-	domicilio: '[DIRECCIÓN], Quito, Ecuador',
+	domicilio: 'Quito, Ecuador',
 	ciudad: 'Quito',
+	/** Un solo buzón para todo; se separan por asunto por si algún día se dividen */
 	correos: {
-		redaccion: 'redaccion@[tu-dominio]',
-		publicidad: 'publicidad@[tu-dominio]',
-		correcciones: 'correcciones@[tu-dominio]',
-		datos: 'datos@[tu-dominio]',
+		redaccion: CORREO,
+		publicidad: CORREO,
+		correcciones: CORREO,
+		datos: CORREO,
 	},
-	telefono: '[TELÉFONO]',
 	horario: 'Lunes a viernes, de 09:00 a 18:00',
+	/** Perfiles oficiales. Vacíos = no se muestran en el pie ni en los datos estructurados (sameAs) */
+	redes: {
+		Instagram: '',
+		Facebook: '',
+		TikTok: '',
+		X: '',
+	} as Record<string, string>,
+	/** Página o portal de ofertas de empleo. Vacío = la portada muestra «Próximamente» con la banana buscando */
+	empleosUrl: '',
 } as const;
+
+export const redesActivas = Object.entries(site.redes)
+	.filter(([, url]) => url)
+	.map(([nombre, url]) => ({ nombre, url }));
 
 /** Páginas institucionales y legales, en el orden en que se muestran */
 export const paginasMedio = [

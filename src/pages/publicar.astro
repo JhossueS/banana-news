@@ -3,13 +3,14 @@
 import PageLayout from '../layouts/PageLayout.astro';
 import MapCanvas from '../components/MapCanvas.astro';
 import Icon from '../components/Icon.astro';
+import Turnstile from '../components/Turnstile.astro';
 ---
 
 <PageLayout
 	title="Publica una noticia en el mapa"
 	group="Mapa de noticias"
 	crumbs={[{ label: 'Mapa de noticias', href: '/#mapa' }]}
-	deck="Ubica dónde ocurrió y cuéntanos qué pasó. La redacción la verifica antes de mostrarla en el mapa."
+	deck="Ubica dónde ocurrió y cuéntanos qué pasó. Aparece al instante en el mapa como «sin verificar» hasta que la redacción la revise."
 >
 	<section class="nmap publish" data-mode="ubicar" aria-label="Publicar en el mapa">
 		<div class="layout">
@@ -46,6 +47,7 @@ import Icon from '../components/Icon.astro';
 						<span>Bajada</span>
 						<textarea name="bajada" rows="3" placeholder="Una frase que explique por qué importa"></textarea>
 					</label>
+					<Turnstile />
 					<button type="submit" class="submit" id="btn-publish" disabled>
 						<Icon name="map-pin" size={18} />
 						Enviar para verificar
@@ -59,7 +61,8 @@ import Icon from '../components/Icon.astro';
 	<p class="note">
 		<Icon name="shield-check" size={18} />
 		<span>
-			Nada se publica sin verificación. Si prefieres contarlo sin ubicarlo en el mapa, usa el
+			Lo que publiques se verá marcado como <b>sin verificar</b> hasta que la redacción lo confirme. No publiques datos
+			personales de terceros. Si prefieres contarlo sin ubicarlo en el mapa, usa el
 			<a href="/#denuncias">formulario de denuncias</a>.
 		</span>
 	</p>

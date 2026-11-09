@@ -1,0 +1,39 @@
+---
+/** Imagen del CMS (R2 + transformaciones de Cloudflare). Sin imagen, deja un bloque neutro del mismo tamaño. */
+import type { ImagenVista } from '../lib/types';
+
+interface Props {
+	image: ImagenVista | null;
+	sizes?: string;
+	class?: string;
+	loading?: 'eager' | 'lazy';
+	fetchpriority?: 'high' | 'auto';
+}
+const { image, sizes = '100vw', class: className, loading = 'lazy', fetchpriority = 'auto' } = Astro.props;
+---
+
+{
+	image ? (
+		<img
+			src={image.src}
+			srcset={image.srcset}
+			sizes={image.srcset ? sizes : undefined}
+			alt={image.alt}
+			width={image.width}
+			height={image.height}
+			class={className}
+			loading={loading}
+			fetchpriority={fetchpriority}
+			decoding="async"
+		/>
+	) : (
+		<span class:list={[className, 'cms-img-vacia']} role="presentation" />
+	)
+}
+
+<style>
+	.cms-img-vacia {
+		display: block;
+		background: var(--bn-gris-200);
+	}
+</style>

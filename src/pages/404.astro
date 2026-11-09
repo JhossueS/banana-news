@@ -1,0 +1,21 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import { cachePublico } from '../lib/cache';
+
+// En SSR para poder llegar aquí con Astro.rewrite desde las notas
+export const prerender = false;
+Astro.response.status = 404;
+cachePublico(Astro.response.headers, 60, 300);
+---
+
+<PageLayout noindex title="No encontramos esta página" group="Error 404" deck="Puede que la nota se haya movido o que el enlace tenga un error.">
+	<p class="back"><a href="/">Volver a la portada</a></p>
+</PageLayout>
+
+<style>
+	.back a {
+		font-size: 17px;
+		font-weight: 700;
+		text-decoration-color: var(--bn-amarillo-700);
+	}
+</style>

@@ -1,0 +1,162 @@
+---
+/** Archivo paginado de notas: /noticias/, /seccion/…/ y /autor/…/ comparten esta vista. */
+import PageLayout from '../layouts/PageLayout.astro';
+import NewsCard from './NewsCard.astro';
+import Icon from './Icon.astro';
+import { POR_PAGINA, type NotaVista } from '../lib/noticias';
+import { absoluta, NOMBRE_SITIO } from '../lib/seo';
+
+interface Props {
+	/** h1 de la página */
+	title: string;
+	/** Etiqueta sobre el título */
+	group: string;
+	deck: string;
+	/** Ruta de la página 1, con barra final (p. ej. /seccion/economia/) */
+	base: string;
+	pagina: number;
+	paginas: number;
+	notas: NotaVista[];
+	crumbs?: { label: string; href: string }[];
+	/** JSON-LD adicional (p. ej. la persona u organización del autor) */
+	schema?: Record<string, unknown>[];
+	vacio?: string;
+}
+const { title, group, deck, base, pagina, paginas, notas, crumbs = [], schema = [], vacio = 'Aún no hay notas publicadas aquí.' } = Astro.props;
+
+const href = (n: number) => (n <= 1 ? base : `${base}pagina/${n}/`);
+const actual = href(pagina);
+const sufijo = pagina > 1 ? ` (página ${pagina})` : '';
+
+const lista = {
+	'@type': 'CollectionPage',
+	name: `${title}${sufijo}`,
+	description: deck,
+	url: absoluta(actual),
+	isPartOf: { '@type': 'WebSite', name: NOMBRE_SITIO, url: absoluta('/') },
+	mainEntity: {
+		'@type': 'ItemList',
+		itemListElement: notas.map((n, i) => ({ '@type': 'ListItem', position: (pagina - 1) * POR_PAGINA + i + 1, url: absoluta(`/noticias/${n.slug}/`) })),
+	},
+};
+---
+
+<PageLayout
+	{title}
+	seoTitle={`${title}${sufijo}`}
+	{group}
+	deck={pagina > 1 ? undefined : deck}
+	description={`${deck}${sufijo}`}
+	crumbs={pagina > 1 ? [...crumbs, { label: title, href: base }] : crumbs}
+	canonical={actual}
+	schema={[lista, ...schema]}
+>
+	{pagina > 1 && <link slot="head" rel="prev" href={href(pagina - 1)} />}
+	{pagina < paginas && <link slot="head" rel="next" href={href(pagina + 1)} />}
+
+	{
+		notas.length ? (
+			<ul class="grid">
+				{notas.map((n) => (
+					<li>
+						<NewsCard variant="horizontal" image={n.imagen} kicker={n.seccion} title={n.titulo} deck={n.bajada} href={`/noticias/${n.slug}/`} />
+					</li>
+				))}
+			</ul>
+		) : (
+			<p class="vacio">{vacio}</p>
+		)
+	}
+
+	{
+		paginas > 1 && (
+			<nav class="paginas" aria-label="Paginación">
+				{pagina > 1 ? (
+					<a class="btn" href={href(pagina - 1)} rel="prev">
+						<Icon name="arrow-right" size={18} class="izq" />
+						Más recientes
+					</a>
+				) : (
+					<span />
+				)}
+				<span class="cuenta">
+					Página {pagina} de {paginas}
+				</span>
+				{pagina < paginas ? (
+					<a class="btn" href={href(pagina + 1)} rel="next">
+						Anteriores
+						<Icon name="arrow-right" size={18} />
+					</a>
+				) : (
+					<span />
+				)}
+			</nav>
+		)
+	}
+</PageLayout>
+
+<style>
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+		gap: 16px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.grid > li {
+		display: flex;
+	}
+	.grid > li > :global(*) {
+		flex: 1;
+	}
+	.vacio {
+		padding: 32px 0;
+		font-size: 17px;
+		color: var(--bn-gris-600);
+	}
+	.paginas {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding-top: 24px;
+		border-top: 3px solid var(--bn-negro);
+	}
+	.cuenta {
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+	}
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 44px;
+		padding: 0 16px;
+		color: var(--bn-negro);
+		font-size: 14px;
+		font-weight: 700;
+		text-decoration: none;
+		border-radius: var(--radius-s);
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+	}
+	.btn:hover {
+		background: var(--bn-amarillo);
+	}
+	.btn :global(.izq) {
+		transform: rotate(180deg);
+	}
+	@media (max-width: 720px) {
+		.cuenta {
+			order: -1;
+			width: 100%;
+			text-align: center;
+		}
+		.btn {
+			flex: 1;
+			justify-content: center;
+		}
+	}
+</style>

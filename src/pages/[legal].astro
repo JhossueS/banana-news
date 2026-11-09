@@ -23,12 +23,9 @@ const actualizado = new Intl.DateTimeFormat('es-EC', { day: 'numeric', month: 'l
 const otras = paginasLegales.filter((l) => l.href !== `/${pagina.id}/`);
 
 const titular = [
-	{ dt: 'Titular', dd: site.razonSocial },
-	{ dt: 'Nombre comercial', dd: site.nombre },
-	{ dt: 'RUC', dd: site.ruc },
+	{ dt: 'Titular', dd: site.nombre },
 	{ dt: 'Domicilio', dd: site.domicilio },
 	{ dt: 'Contacto', dd: site.correos.redaccion, mail: true },
-	{ dt: 'Datos personales', dd: site.correos.datos, mail: true },
 ];
 ---
 

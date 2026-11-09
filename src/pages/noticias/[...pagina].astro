@@ -1,0 +1,26 @@
+---
+/** Archivo de todas las notas: /noticias/ y /noticias/pagina/N/ (las notas, en [slug].astro, tienen prioridad) */
+import ListadoNotas from '../../components/ListadoNotas.astro';
+import { paginaNoticias } from '../../lib/noticias';
+import { cachePublico } from '../../lib/cache';
+import { leerPagina } from '../../lib/paginacion';
+
+export const prerender = false;
+
+const pagina = leerPagina(Astro.params.pagina);
+if (pagina === null) return Astro.rewrite('/404');
+
+const { notas, paginas } = await paginaNoticias({ pagina });
+if (pagina > paginas) return Astro.rewrite('/404');
+cachePublico(Astro.response.headers, 300);
+---
+
+<ListadoNotas
+	title="Últimas noticias"
+	group="Noticias"
+	deck="Todas las noticias de Banana News, de la más reciente a la más antigua: política, economía, ciudad y ambiente en Ecuador."
+	base="/noticias/"
+	{pagina}
+	{paginas}
+	{notas}
+/>

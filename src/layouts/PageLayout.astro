@@ -14,11 +14,17 @@ interface Props {
 	description?: string;
 	/** Pasos intermedios de la ruta, entre «Inicio» y el título */
 	crumbs?: { label: string; href: string }[];
+	/** Título del <title> si difiere del h1 (sin el « · Banana News») */
+	seoTitle?: string;
+	canonical?: string;
+	noindex?: boolean;
+	schema?: Record<string, unknown>[];
 }
-const { title, deck, group, description = deck, crumbs = [] } = Astro.props;
+const { title, deck, group, description = deck, crumbs = [], seoTitle = title, canonical, noindex, schema } = Astro.props;
 ---
 
-<Layout title={`${title} · Banana News`} description={description}>
+<Layout title={`${seoTitle} · Banana News`} {description} {canonical} {noindex} {schema}>
+	<slot name="head" slot="head" />
 	<Header current={null} />
 
 	<main id="contenido" class="wrap main">

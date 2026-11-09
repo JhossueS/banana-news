@@ -64,6 +64,10 @@ html {
 
 body {
 	margin: 0;
+	/* Footer siempre al fondo: en páginas cortas (404, legales) el contenido crece y no queda hueco debajo */
+	display: flex;
+	flex-direction: column;
+	min-height: 100dvh;
 	background: var(--bn-hueso);
 	color: var(--bn-negro);
 	font-family: var(--font-sans);
@@ -160,11 +164,19 @@ textarea {
 }
 
 /* ───────────────────────── Utilidades ───────────────────────── */
+body > main {
+	flex: 1 0 auto;
+}
+
 .wrap {
 	width: 100%;
 	max-width: var(--grid-max);
 	margin-inline: auto;
 	padding-inline: var(--gutter);
+}
+
+.wrap-login {
+	max-width: none;
 }
 
 .sr-only {
