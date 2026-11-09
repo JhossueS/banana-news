@@ -26,6 +26,10 @@ if (process.env.BN_PASSWORD) {
 	process.exit(1);
 }
 
+if (!process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
+	console.error('Falta DATABASE_URL: la cuenta se crearía en una base temporal del contenedor.');
+	process.exit(1);
+}
 const siteUrl = process.env.SITE_URL || 'http://localhost:4321';
 const db = await crearDb(process.env.DATABASE_URL);
 const correo = email!.toLowerCase();

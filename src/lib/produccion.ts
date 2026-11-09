@@ -16,6 +16,9 @@ function revisar() {
 	const avisos: string[] = [];
 	if (!esDespliegue) return { errores, avisos };
 
+	if (!env.DATABASE_URL) {
+		errores.push('Falta DATABASE_URL: sin ella la app usaría una base PGlite dentro del contenedor, vacía y que se borra en cada deploy. En Railway: ${{Postgres.DATABASE_URL}}.');
+	}
 	if (esClavePrueba(env.TURNSTILE_SECRET) || esClavePrueba(TURNSTILE_SITE_KEY)) {
 		errores.push('TURNSTILE_SITE_KEY / TURNSTILE_SECRET son las claves de prueba: cualquier envío pasaría el antispam.');
 	}
