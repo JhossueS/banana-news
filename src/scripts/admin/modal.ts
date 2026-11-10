@@ -22,6 +22,8 @@ export interface OpcionesModal {
 	campos: Campo[];
 	/** Texto del botón principal */
 	aceptar?: string;
+	/** Botón principal en rojo (acciones destructivas) */
+	peligro?: boolean;
 	/** Botón secundario opcional (p. ej. «Quitar enlace»): resuelve con { accion: 'secundaria' } */
 	secundaria?: string;
 	/** Devuelve un error para un campo, o null si todo está bien */
@@ -76,7 +78,7 @@ export function pedir(o: OpcionesModal): Promise<(Valores & { accion: 'aceptar' 
 			<div class="a-modal-acciones">
 				${o.secundaria ? `<button type="button" class="a-btn a-btn--peligro" data-secundaria>${esc(o.secundaria)}</button>` : ''}
 				<button type="button" class="a-btn a-btn--ghost" data-cancelar>Cancelar</button>
-				<button type="submit" class="a-btn a-btn--amarillo">${esc(o.aceptar ?? 'Aceptar')}</button>
+				<button type="submit" class="a-btn ${o.peligro ? 'a-btn--peligro' : 'a-btn--amarillo'}">${esc(o.aceptar ?? 'Aceptar')}</button>
 			</div>
 		</form>`;
 
@@ -139,4 +141,18 @@ export function pedir(o: OpcionesModal): Promise<(Valores & { accion: 'aceptar' 
 		primero?.focus();
 		primero?.select?.();
 	});
+}
+
+/** Aviso de confirmación (reemplaza a confirm()). Resuelve true si la persona acepta */
+export async function confirmar(o: { titulo: string; mensaje: string; aceptar?: string; peligro?: boolean }): Promise<boolean> {
+	const r = await pedir({
+		titulo: o.titulo,
+		campos: [],
+		aceptar: o.aceptar,
+		peligro: o.peligro,
+		alCambiar: (_, extra) => {
+			extra.textContent = o.mensaje;
+		},
+	});
+	return !!r;
 }

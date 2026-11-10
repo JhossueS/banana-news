@@ -103,6 +103,7 @@ const descripcion = { admin: 'Todo, incluidas las cuentas', editor: 'Notas, medi
 
 <script>
 	import { api, say } from '../../scripts/admin/api';
+	import { confirmar } from '../../scripts/admin/modal';
 
 	type Respuesta = { enviado: boolean; enlace?: string };
 
@@ -155,11 +156,11 @@ const descripcion = { admin: 'Todo, incluidas las cuentas', editor: 'Notas, medi
 		const st = tr.querySelector<HTMLElement>('.a-status');
 		try {
 			if (b.dataset.act === 'borrar') {
-				if (!confirm('¿Borrar esta cuenta? Sus notas se conservan.')) return;
+				if (!(await confirmar({ titulo: 'Borrar cuenta', mensaje: 'Sus notas se conservan.', aceptar: 'Borrar', peligro: true }))) return;
 				await api(`/api/admin/usuarios/${tr.dataset.id}`, 'DELETE');
 				tr.remove();
 			} else {
-				if (!confirm('¿Restablecer el acceso? Su contraseña actual deja de funcionar, se cierran sus sesiones y recibe un enlace para poner una nueva.')) return;
+				if (!(await confirmar({ titulo: 'Restablecer acceso', mensaje: 'Su contraseña actual deja de funcionar, se cierran sus sesiones y recibe un enlace para poner una nueva.', aceptar: 'Restablecer' }))) return;
 				const r = await api<Respuesta>(`/api/admin/usuarios/${tr.dataset.id}`, 'PATCH', { restablecer: true });
 				mostrarEnlace(st, r, tr.children[1]?.textContent?.trim() ?? 'su correo');
 			}

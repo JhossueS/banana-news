@@ -96,12 +96,13 @@ const asuntos: Record<string, string> = { redaccion: 'Redacción', publicidad: '
 
 <script>
 	import { api, say } from '../../scripts/admin/api';
+	import { confirmar } from '../../scripts/admin/modal';
 	document.addEventListener('click', async (e) => {
 		const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-estado], [data-borrar]');
 		const li = b?.closest<HTMLElement>('[data-id]');
 		if (!b || !li) return;
 		const borrar = b.hasAttribute('data-borrar');
-		if (borrar && !confirm('¿Borrar este mensaje?')) return;
+		if (borrar && !(await confirmar({ titulo: 'Borrar mensaje', mensaje: 'Se borrará definitivamente. No se puede deshacer.', aceptar: 'Borrar', peligro: true }))) return;
 		try {
 			await api('/api/admin/mensajes', 'POST', borrar ? { id: li.dataset.id, borrar: true } : { id: li.dataset.id, estado: b.dataset.estado });
 			li.remove();

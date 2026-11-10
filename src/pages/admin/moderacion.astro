@@ -218,6 +218,7 @@ const etiqueta = { 'sin-verificar': 'Sin verificar', verificado: 'Verificadas', 
 
 <script>
 	import { api, say } from '../../scripts/admin/api';
+	import { confirmar } from '../../scripts/admin/modal';
 
 	const enviar = async (li: HTMLElement, cuerpo: Record<string, unknown>) => {
 		const st = li.querySelector<HTMLElement>('.a-status');
@@ -232,12 +233,12 @@ const etiqueta = { 'sin-verificar': 'Sin verificar', verificado: 'Verificadas', 
 		}
 	};
 
-	document.addEventListener('click', (e) => {
+	document.addEventListener('click', async (e) => {
 		const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-accion]');
 		const li = b?.closest<HTMLElement>('[data-id]');
 		if (!b || !li) return;
 		const accion = b.dataset.accion!;
-		if (accion === 'borrar' && !confirm('¿Borrar definitivamente?')) return;
+		if (accion === 'borrar' && !(await confirmar({ titulo: 'Borrar definitivamente', mensaje: 'Se borrará y no se puede deshacer.', aceptar: 'Borrar', peligro: true }))) return;
 		if (accion === 'ubicar') {
 			const coords = (li.querySelector<HTMLInputElement>('[name=coords]')?.value ?? '').split(',').map((s) => Number(s.trim()));
 			if (coords.length !== 2 || coords.some((n) => Number.isNaN(n))) {

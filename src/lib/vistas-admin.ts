@@ -16,7 +16,7 @@ export const medioVista = (m: Medio) => ({
 	listo: m.listo,
 	creado: m.creado,
 	/** Miniatura para el panel */
-	vista: m.tipo === 'imagen' && m.r2Key ? medios.urlImagen(m.r2Key, 480) : m.streamUid ? medios.posterStream(m.streamUid) : '',
+	vista: m.tipo === 'imagen' && m.r2Key ? medios.urlImagen(m.r2Key, 480, m.ancho) : m.streamUid ? medios.posterStream(m.streamUid) : '',
 	url: m.r2Key ? medios.urlArchivo(m.r2Key) : m.streamUid ? medios.urlStream(m.streamUid) : '',
 });
 export type MedioVista = ReturnType<typeof medioVista>;

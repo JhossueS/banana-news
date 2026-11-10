@@ -3,7 +3,9 @@ import { Editor, type JSONContent } from '@tiptap/core';
 import { extensiones, leerYoutube, type AttrsImagen, type AttrsVideo, type AttrsYoutube } from '../../lib/editor/extensiones';
 import { api, ErrorApi, say } from './api';
 import { elegirMedio } from './selector';
-import { pedir } from './modal';
+import { confirmar, pedir } from './modal';
+
+const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 import type { MedioVista } from './subir';
 import { iniciarCalidad } from './calidad';
 
@@ -326,11 +328,24 @@ form.addEventListener('click', async (e) => {
 	if (!b) return;
 	const accion = b.dataset.accion;
 	if (accion === 'publicar') {
-		if (confirm('¿Publicar la nota? Será visible para todos en segundos.')) guardar('publicada', b);
+		// El modal repite la lista de calidad: con faltantes no deja publicar; con sugerencias, sí
+		const lista = document.getElementById('cal-lista')!;
+		const resumen = document.getElementById('cal-resumen')!.textContent ?? '';
+		const bloqueada = !!lista.querySelector('[data-nivel="falta"]');
+		const r = await pedir({
+			titulo: 'Publicar nota',
+			campos: [],
+			aceptar: 'Publicar ahora',
+			validar: () => (bloqueada ? { campo: '', mensaje: 'Completa lo que falta antes de publicar.' } : null),
+			alCambiar: (_, extra) => {
+				extra.innerHTML = `<p><strong>${esc(resumen)}</strong> Al publicar, la nota será visible para todos en segundos.</p><ul class="ed-lista">${lista.innerHTML}</ul>`;
+			},
+		});
+		if (r) guardar('publicada', b);
 	} else if (accion === 'despublicar') {
-		if (confirm('¿Pasar a borrador? La nota dejará de estar disponible en el sitio.')) guardar('borrador', b);
+		if (await confirmar({ titulo: 'Pasar a borrador', mensaje: 'La nota dejará de estar disponible en el sitio.', aceptar: 'Pasar a borrador' })) guardar('borrador', b);
 	} else if (accion === 'borrar') {
-		if (!confirm('¿Borrar la nota definitivamente? No se puede deshacer.')) return;
+		if (!(await confirmar({ titulo: 'Borrar nota', mensaje: 'Se borrará definitivamente. No se puede deshacer.', aceptar: 'Borrar', peligro: true }))) return;
 		try {
 			await api(`/api/admin/notas/${datos.id}`, 'DELETE');
 			sucio = false;
