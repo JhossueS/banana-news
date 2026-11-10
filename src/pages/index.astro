@@ -4,6 +4,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import InfoBar from '../components/InfoBar.astro';
 import NewsCard from '../components/NewsCard.astro';
+import { fotoNota } from '../lib/transiciones';
 import ReportSection from '../components/ReportSection.astro';
 import NewsMap from '../components/NewsMap.astro';
 import Icon from '../components/Icon.astro';
@@ -62,12 +63,13 @@ const schema = [
 							tag={principal.seccion.toUpperCase()}
 							title={principal.titulo}
 							href={`/noticias/${principal.slug}/`}
+							transicion={fotoNota(principal.slug)}
 							deck={principal.bajada}
 							priority
 						/>
 						<div class="news-side">
 							{laterales.map((n) => (
-								<NewsCard variant="horizontal" image={n.imagen} kicker={n.seccion} title={n.titulo} href={`/noticias/${n.slug}/`} deck={n.bajada} />
+								<NewsCard variant="horizontal" image={n.imagen} kicker={n.seccion} title={n.titulo} href={`/noticias/${n.slug}/`} deck={n.bajada} transicion={fotoNota(n.slug)} />
 							))}
 						</div>
 					</div>

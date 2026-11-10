@@ -2,6 +2,7 @@
 /** Archivo paginado de notas: /noticias/, /seccion/…/ y /autor/…/ comparten esta vista. */
 import PageLayout from '../layouts/PageLayout.astro';
 import NewsCard from './NewsCard.astro';
+import { fotoNota } from '../lib/transiciones';
 import Icon from './Icon.astro';
 import { POR_PAGINA, type NotaVista } from '../lib/noticias';
 import { absoluta, NOMBRE_SITIO } from '../lib/seo';
@@ -59,7 +60,7 @@ const lista = {
 			<ul class="grid">
 				{notas.map((n) => (
 					<li>
-						<NewsCard variant="horizontal" image={n.imagen} kicker={n.seccion} title={n.titulo} deck={n.bajada} href={`/noticias/${n.slug}/`} />
+						<NewsCard variant="horizontal" image={n.imagen} kicker={n.seccion} title={n.titulo} deck={n.bajada} href={`/noticias/${n.slug}/`} transicion={fotoNota(n.slug)} />
 					</li>
 				))}
 			</ul>

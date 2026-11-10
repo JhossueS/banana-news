@@ -11,8 +11,11 @@ interface Props {
 	class?: string;
 	loading?: 'eager' | 'lazy';
 	fetchpriority?: 'high' | 'auto';
+	/** view-transition-name: la misma foto en otra página se anima hasta aquí (ver lib/transiciones) */
+	transicion?: string;
 }
-const { image, sizes = '100vw', class: className, loading = 'lazy', fetchpriority = 'auto' } = Astro.props;
+const { image, sizes = '100vw', class: className, loading = 'lazy', fetchpriority = 'auto', transicion } = Astro.props;
+const vt = transicion ? `view-transition-name: ${transicion}; view-transition-class: foto` : undefined;
 ---
 
 {
@@ -32,10 +35,11 @@ const { image, sizes = '100vw', class: className, loading = 'lazy', fetchpriorit
 				loading={loading}
 				fetchpriority={fetchpriority}
 				decoding="async"
+				style={vt}
 			/>
 		</picture>
 ) : (
-		<span class:list={[className, 'cms-img-vacia']} role="presentation" />
+		<span class:list={[className, 'cms-img-vacia']} role="presentation" style={vt} />
 	)
 }
 

@@ -10,6 +10,7 @@ import Crumbs from '../../components/Crumbs.astro';
 import Prose from '../../components/Prose.astro';
 import CmsImage from '../../components/CmsImage.astro';
 import Anuncio from '../../components/Anuncio.astro';
+import { fotoNota } from '../../lib/transiciones';
 import { getNoticiaPorSlug, relacionadas as buscarRelacionadas } from '../../lib/noticias';
 import { cachePublico } from '../../lib/cache';
 import { absoluta, hrefAutor, hrefSeccion, esFirmaInstitucional, organizacion, recortar, tituloSeo } from '../../lib/seo';
@@ -120,6 +121,7 @@ const shareUrl = encodeURIComponent(url);
 					sizes="(min-width: 1280px) 1216px, calc(100vw - 2 * var(--gutter))"
 					loading="eager"
 					fetchpriority="high"
+					transicion={fotoNota(n.slug)}
 				/>
 				{(n.imagen?.alt || n.credito) && (
 					<figcaption>
@@ -173,7 +175,7 @@ const shareUrl = encodeURIComponent(url);
 					</div>
 					<div class="related-grid">
 						{relacionadas.map((r) => (
-							<NewsCard variant="horizontal" image={r.imagen} kicker={r.seccion} title={r.titulo} deck={r.bajada} href={`/noticias/${r.slug}/`} />
+							<NewsCard variant="horizontal" image={r.imagen} kicker={r.seccion} title={r.titulo} deck={r.bajada} href={`/noticias/${r.slug}/`} transicion={fotoNota(r.slug)} />
 						))}
 					</div>
 				</section>

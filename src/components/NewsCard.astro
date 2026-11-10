@@ -17,8 +17,12 @@ interface Props {
 	/** La primera imagen visible se carga con prioridad */
 	priority?: boolean;
 	class?: string;
+	/** view-transition-name de la foto (lib/transiciones) */
+	transicion?: string;
 }
-const { variant = 'principal', image, title, deck, tag, kicker, href = '#', priority = false, class: className } = Astro.props;
+const { variant = 'principal', image, title, deck, tag, kicker, href = '#', priority = false, class: className, transicion } = Astro.props;
+// Principal: velo y texto van encima de la foto durante la transición (si no, la foto los taparía al volver a la portada)
+const vtCapa = (capa: string) => (transicion ? `view-transition-name: ${transicion}-${capa}; view-transition-class: tarjeta` : undefined);
 ---
 
 {
@@ -30,9 +34,10 @@ const { variant = 'principal', image, title, deck, tag, kicker, href = '#', prio
 				sizes="(min-width: 1024px) 60vw, 100vw"
 				loading={priority ? 'eager' : 'lazy'}
 				fetchpriority={priority ? 'high' : 'auto'}
+				{transicion}
 			/>
-			<div class="scrim" aria-hidden="true" />
-			<div class="body">
+			<div class="scrim" aria-hidden="true" style={vtCapa('velo')} />
+			<div class="body" style={vtCapa('texto')}>
 				{tag && <Tag size="md">{tag}</Tag>}
 				<h3 class="title">
 					<a class="stretch" {href}>
@@ -46,7 +51,7 @@ const { variant = 'principal', image, title, deck, tag, kicker, href = '#', prio
 	) : (
 		<article class:list={['card', 'horizontal', className]}>
 			<div class="thumb">
-				<CmsImage image={image} class="photo" sizes="(min-width: 1024px) 180px, 40vw" />
+				<CmsImage image={image} class="photo" sizes="(min-width: 1024px) 180px, 40vw" {transicion} />
 			</div>
 			<div class="body">
 				{kicker && <span class="kicker">{kicker}</span>}
