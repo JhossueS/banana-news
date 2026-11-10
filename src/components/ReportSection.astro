@@ -1,4 +1,5 @@
 ---
+import Anuncio from './Anuncio.astro';
 import Tag from './Tag.astro';
 import Icon from './Icon.astro';
 import StatusPill from './StatusPill.astro';
@@ -14,51 +15,49 @@ const { recientes } = Astro.props;
 <section id="denuncias" class="report" aria-labelledby="h-denuncia">
 	<aside class="ad" aria-label="Publicidad">
 		<span class="ad-label">Publicidad</span>
-		<div class="ad-slot">
-			<span class="ad-name">[TU ANUNCIO]</span>
-			<span class="ad-size"><span class="ad-size-d">300 × 600 · media página</span><span class="ad-size-m">320 × 100 · banner móvil</span></span>
-		</div>
+		<div class="ad-d"><Anuncio formato="media-pagina" /></div>
+		<div class="ad-m"><Anuncio formato="banner-movil" /></div>
 	</aside>
 
 	<div class="panel on-dark">
-		<div class="col-form">
+		<div class="col-intro">
 			<Tag variant="coral" size="md" icon="megaphone">Denuncia ciudadana</Tag>
 			<h2 id="h-denuncia" class="h">
 				¿Viste algo que debe saberse? <span class="hl">Cuéntanos.</span>
 			</h2>
 			<p class="lede">Tu denuncia aparece de inmediato como <b>sin verificar</b> y la redacción la revisa. Puedes enviarla de forma anónima.</p>
-
-			<form class="form" id="form-denuncia" novalidate>
-				<label class="field">
-					<span>¿Qué pasó?</span>
-					<textarea name="relato" rows="3" required minlength="15" placeholder="Describe el hecho con fecha y lugar"></textarea>
-					<small>Mientras más claro, mejor: qué ocurrió y cuándo.</small>
-				</label>
-				<label class="field">
-					<span>¿Dónde?</span>
-					<input type="text" name="lugar" required autocomplete="off" placeholder="Ciudad, barrio o dirección" />
-				</label>
-				<label class="field">
-					<span>Tu contacto <em class="opt">(opcional, no se publica)</em></span>
-					<input type="text" name="contacto" autocomplete="email" placeholder="Correo o teléfono, si quieres que te contactemos" />
-					<small>Solo lo verá la redacción.</small>
-				</label>
-				<small class="adj-ayuda">Una foto ayuda a verificarlo. Hasta 50 MB.</small>
-				<Turnstile theme="dark" />
-				<div class="actions">
-					<input type="file" id="adjunto" name="adjunto" accept="image/*,video/*" hidden />
-					<button type="button" class="btn btn--ghost" id="btn-adjunto">
-						<Icon name="camera" size={18} />
-						<span id="adjunto-label">Adjuntar foto o video</span>
-					</button>
-					<button type="submit" class="btn btn--primary">
-						Enviar denuncia
-						<Icon name="arrow-right" size={18} />
-					</button>
-				</div>
-				<p class="status" id="denuncia-status" role="status" aria-live="polite"></p>
-			</form>
 		</div>
+
+		<form class="form" id="form-denuncia" novalidate>
+			<label class="field">
+				<span>¿Qué pasó?</span>
+				<textarea name="relato" rows="3" required minlength="15" placeholder="Describe el hecho con fecha y lugar"></textarea>
+				<small>Mientras más claro, mejor: qué ocurrió y cuándo.</small>
+			</label>
+			<label class="field">
+				<span>¿Dónde?</span>
+				<input type="text" name="lugar" required autocomplete="off" placeholder="Ciudad, barrio o dirección" />
+			</label>
+			<label class="field">
+				<span>Tu contacto <em class="opt">(opcional, no se publica)</em></span>
+				<input type="text" name="contacto" autocomplete="email" placeholder="Correo o teléfono, si quieres que te contactemos" />
+				<small>Solo lo verá la redacción.</small>
+			</label>
+			<small class="adj-ayuda">Una foto ayuda a verificarlo. Hasta 50 MB.</small>
+			<Turnstile theme="dark" />
+			<div class="actions">
+				<input type="file" id="adjunto" name="adjunto" accept="image/*,video/*" hidden />
+				<button type="button" class="btn btn--ghost" id="btn-adjunto">
+					<Icon name="camera" size={18} />
+					<span id="adjunto-label">Adjuntar foto o video</span>
+				</button>
+				<button type="submit" class="btn btn--primary">
+					Enviar denuncia
+					<Icon name="arrow-right" size={18} />
+				</button>
+			</div>
+			<p class="status" id="denuncia-status" role="status" aria-live="polite"></p>
+		</form>
 
 		<div class="col-list">
 			<h3 class="list-title">Denuncias recientes</h3>
@@ -89,7 +88,7 @@ const { recientes } = Astro.props;
 		display: flex;
 		flex-wrap: wrap;
 		gap: 24px;
-		align-items: stretch;
+		align-items: flex-start;
 	}
 
 	/* Publicidad */
@@ -108,51 +107,38 @@ const { recientes } = Astro.props;
 		text-transform: uppercase;
 		color: var(--bn-gris-600);
 	}
-	.ad-slot {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 6px;
-		padding: 24px;
-		text-align: center;
-		background: var(--bn-gris-100);
-		box-shadow: inset 0 0 0 1px var(--bn-gris-200);
-	}
-	.ad-name {
-		font-size: 20px;
-		font-weight: 800;
-	}
-	.ad-size {
-		font-size: 13px;
-		color: var(--bn-gris-600);
-	}
-	.ad-size-m {
+	.ad-m {
 		display: none;
 	}
 
-	/* Panel negro */
+	/* Panel negro: en escritorio nunca pasa de 600 px (la altura de la media página); las recientes se desplazan dentro */
 	.panel {
 		flex: 999 1 600px;
 		min-width: 0;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 40px;
-		padding: clamp(24px, 4vw, 40px);
+		display: grid;
+		grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+		grid-template-rows: auto minmax(0, 1fr);
+		grid-template-areas:
+			'intro form'
+			'list form';
+		column-gap: 40px;
+		row-gap: 24px;
+		height: 600px;
+		margin-top: 22px; /* alinea con la imagen del anuncio, bajo su etiqueta */
+		padding: 32px clamp(24px, 4vw, 40px);
 		background: var(--bn-negro);
 		color: var(--bn-hueso);
 	}
-	.col-form {
-		flex: 1 1 340px;
+	.col-intro {
+		grid-area: intro;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 18px;
+		gap: 14px;
 	}
 	.h {
-		font-size: clamp(30px, 3.4vw, 40px);
+		font-size: clamp(28px, 3vw, 36px);
 		font-weight: 800;
 		line-height: 1.06;
 		letter-spacing: -0.02em;
@@ -184,11 +170,11 @@ const { recientes } = Astro.props;
 	}
 
 	.form {
-		width: 100%;
+		grid-area: form;
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		margin-top: 6px;
+		gap: 12px;
 	}
 	.field {
 		display: flex;
@@ -229,8 +215,15 @@ const { recientes } = Astro.props;
 	}
 	.actions {
 		display: flex;
-		flex-wrap: wrap;
+		flex-wrap: nowrap;
 		gap: 12px;
+	}
+	.actions .btn {
+		min-width: 0;
+		white-space: nowrap;
+	}
+	.actions .btn--primary {
+		flex: none;
 	}
 	.btn {
 		display: inline-flex;
@@ -275,6 +268,9 @@ const { recientes } = Astro.props;
 		outline-offset: 3px;
 		box-shadow: none;
 	}
+	.status:empty {
+		display: none;
+	}
 	.status {
 		min-height: 1.4em;
 		font-size: 14px;
@@ -290,8 +286,12 @@ const { recientes } = Astro.props;
 
 	/* Recientes */
 	.col-list {
-		flex: 1 1 300px;
+		grid-area: list;
 		min-width: 0;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		padding-right: 4px;
 	}
 	.list-title {
 		margin-bottom: 8px;
@@ -350,32 +350,31 @@ const { recientes } = Astro.props;
 			min-height: 0;
 			gap: 6px;
 		}
-		.ad-slot {
-			flex: none;
-			height: 110px;
-			padding: 12px;
-			gap: 4px;
-		}
-		.ad-name {
-			font-size: 17px;
-		}
-		.ad-size {
-			font-size: 12px;
-		}
-		.ad-size-d {
+		.ad-d {
 			display: none;
 		}
-		.ad-size-m {
-			display: inline;
+		.ad-m {
+			display: block;
 		}
-		/* El panel negro sangra a todo el ancho en móvil */
+		/* El panel negro sangra a todo el ancho en móvil, en una sola columna y sin tope de altura */
 		.panel {
 			flex-basis: 100%;
-			margin-inline: calc(var(--gutter) * -1);
+			display: flex;
+			flex-direction: column;
+			height: auto;
+			margin: 0 calc(var(--gutter) * -1);
 			padding: 32px var(--gutter);
 			gap: 28px;
 		}
-		.btn {
+		.col-list {
+			overflow: visible;
+			padding-right: 0;
+		}
+		.actions {
+			flex-wrap: wrap;
+		}
+		.btn,
+		.actions .btn--primary {
 			flex: 1 1 100%;
 		}
 		.item-title {

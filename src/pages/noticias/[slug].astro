@@ -9,6 +9,7 @@ import Icon from '../../components/Icon.astro';
 import Crumbs from '../../components/Crumbs.astro';
 import Prose from '../../components/Prose.astro';
 import CmsImage from '../../components/CmsImage.astro';
+import Anuncio from '../../components/Anuncio.astro';
 import { getNoticiaPorSlug, relacionadas as buscarRelacionadas } from '../../lib/noticias';
 import { cachePublico } from '../../lib/cache';
 import { absoluta, hrefAutor, hrefSeccion, esFirmaInstitucional, organizacion, recortar, tituloSeo } from '../../lib/seo';
@@ -157,10 +158,7 @@ const shareUrl = encodeURIComponent(url);
 				<aside class="rail" aria-label="Más contenido">
 					<div class="ad">
 						<span class="ad-label">Publicidad</span>
-						<div class="ad-slot">
-							<span class="ad-name">[TU ANUNCIO]</span>
-							<span class="ad-size">300 × 250 · rectángulo</span>
-						</div>
+						<Anuncio formato="rectangulo" />
 					</div>
 				</aside>
 			</div>
@@ -224,6 +222,8 @@ const shareUrl = encodeURIComponent(url);
 	.deck {
 		position: relative;
 		max-width: 52ch;
+		min-width: 0;
+		overflow-wrap: anywhere;
 		padding-left: 18px;
 		font-size: clamp(18px, 2vw, 21px);
 		font-weight: 500;
@@ -431,26 +431,6 @@ const shareUrl = encodeURIComponent(url);
 		text-transform: uppercase;
 		color: var(--bn-gris-600);
 	}
-	.ad-slot {
-		height: 250px;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 6px;
-		padding: 24px;
-		text-align: center;
-		background: var(--bn-gris-100);
-		box-shadow: inset 0 0 0 1px var(--bn-gris-200);
-	}
-	.ad-name {
-		font-size: 20px;
-		font-weight: 800;
-	}
-	.ad-size {
-		font-size: 13px;
-		color: var(--bn-gris-600);
-	}
 
 	/* Sigue leyendo */
 	.related {
@@ -516,9 +496,6 @@ const shareUrl = encodeURIComponent(url);
 		.rail {
 			position: static;
 			max-width: none;
-		}
-		.ad-slot {
-			height: 110px;
 		}
 		.claves {
 			padding: 18px;

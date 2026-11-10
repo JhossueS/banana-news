@@ -1,0 +1,27 @@
+---
+/** Espacio publicitario: la imagen sale por CmsImage (<picture> AVIF → WebP) a su medida real. */
+import CmsImage from './CmsImage.astro';
+import { anuncios, type FormatoAnuncio } from '../data/anuncios';
+
+interface Props {
+	formato: FormatoAnuncio;
+}
+const { formato } = Astro.props;
+const image = anuncios[formato];
+---
+
+<div class="anuncio" style={`max-width: ${image.width}px`}>
+	<CmsImage {image} sizes={`${image.width}px`} class="anuncio-img" />
+</div>
+
+<style>
+	.anuncio {
+		width: 100%;
+		margin-inline: auto;
+	}
+	.anuncio :global(.anuncio-img) {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+</style>
