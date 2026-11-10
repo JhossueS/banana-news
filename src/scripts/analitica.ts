@@ -77,8 +77,16 @@ export function evento(nombre: string, params: Record<string, string | number> =
 
 export function iniciarConsentimiento(id: string) {
 	const aviso = document.getElementById('consentimiento');
-	const mostrar = () => aviso?.removeAttribute('hidden');
-	const ocultar = () => aviso?.setAttribute('hidden', '');
+	const raiz = document.documentElement;
+	const mostrar = () => {
+		aviso?.removeAttribute('hidden');
+		raiz.classList.add('consent-bloqueo');
+		aviso?.querySelector<HTMLElement>('[data-consent="si"]')?.focus();
+	};
+	const ocultar = () => {
+		aviso?.setAttribute('hidden', '');
+		raiz.classList.remove('consent-bloqueo');
+	};
 
 	const decidir = (valor: Valor) => {
 		const antes = leer()?.valor;
@@ -98,11 +106,26 @@ export function iniciarConsentimiento(id: string) {
 		b.addEventListener('click', (e) => {
 			e.preventDefault();
 			mostrar();
-			aviso?.querySelector<HTMLElement>('[data-consent="si"]')?.focus();
 		}),
 	);
 
+	// Mientras el aviso está abierto, el foco no sale de él
+	aviso?.addEventListener('keydown', (e) => {
+		if (e.key !== 'Tab') return;
+		const foco = Array.from(aviso.querySelectorAll<HTMLElement>('a[href], button'));
+		const primero = foco[0]!;
+		const ultimo = foco[foco.length - 1]!;
+		if (e.shiftKey && document.activeElement === primero) {
+			e.preventDefault();
+			ultimo.focus();
+		} else if (!e.shiftKey && document.activeElement === ultimo) {
+			e.preventDefault();
+			primero.focus();
+		}
+	});
+
 	const d = leer();
 	if (d?.valor === 'si') cargar(id);
-	else if (!d && !noRastrear()) mostrar();
+	// En la propia política no se bloquea la página, para poder leerla antes de decidir
+	else if (!d && !noRastrear() && !location.pathname.startsWith('/politica-de-cookies/')) mostrar();
 }

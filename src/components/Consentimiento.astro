@@ -2,27 +2,46 @@
 /** Aviso de cookies de analítica. Oculto hasta que el script decide mostrarlo. */
 ---
 
-<section id="consentimiento" class="consent" aria-labelledby="consent-titulo" hidden>
-	<p id="consent-titulo" class="txt">
-		Usamos cookies de Google Analytics para saber qué notas se leen. ¿Las aceptas?
-		<a href="/politica-de-cookies/">Más información</a>
-	</p>
-	<div class="btns">
-		<button type="button" class="btn" data-consent="no">Rechazar</button>
-		<button type="button" class="btn" data-consent="si">Aceptar</button>
-	</div>
-</section>
+<div id="consentimiento" class="velo" hidden>
+	<section class="consent" role="dialog" aria-modal="true" aria-labelledby="consent-titulo">
+		<p id="consent-titulo" class="txt">
+			Usamos cookies de Google Analytics para saber qué notas se leen. ¿Las aceptas?
+			<a href="/politica-de-cookies/">Más información</a>
+		</p>
+		<div class="btns">
+			<button type="button" class="btn" data-consent="no">Rechazar</button>
+			<button type="button" class="btn" data-consent="si">Aceptar</button>
+		</div>
+	</section>
+</div>
+
+<style is:global>
+	html.consent-bloqueo,
+	html.consent-bloqueo body {
+		overflow: hidden;
+	}
+</style>
 
 <style>
-	.consent {
+	.velo {
 		position: fixed;
-		inset: auto 16px 16px;
+		inset: 0;
 		z-index: 50;
+		display: flex;
+		align-items: flex-end;
+		padding: 16px;
+		background: rgb(0 0 0 / 0.55);
+	}
+	.velo[hidden] {
+		display: none;
+	}
+	.consent {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 12px 20px;
 		align-items: center;
 		justify-content: space-between;
+		width: 100%;
 		max-width: 760px;
 		margin-inline: auto;
 		padding: 16px 20px;
@@ -30,9 +49,6 @@
 		color: var(--bn-hueso);
 		border-radius: var(--radius-m);
 		box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
-	}
-	.consent[hidden] {
-		display: none;
 	}
 	.txt {
 		flex: 1 1 320px;
