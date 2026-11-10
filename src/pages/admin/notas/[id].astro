@@ -45,16 +45,17 @@ const estados: [string, string][] = [
 	<form id="form-nota" class="ed" novalidate>
 		<div class="ed-main">
 			<label class="a-field">
-				<span>Título</span>
+				<span>Título <small class="ed-cont" data-cont="titulo"></small></span>
 				<input name="titulo" class="ed-titulo" value={n.titulo === 'Nota sin título' ? '' : n.titulo} placeholder="Verbo en presente, sujeto concreto" maxlength="160" required />
 			</label>
 			<label class="a-field">
-				<span>Bajada <small>una o dos frases: por qué importa</small></span>
+				<span>Bajada <small class="ed-cont" data-cont="bajada"></small></span>
 				<textarea name="bajada" rows="2" maxlength="400">{n.bajada}</textarea>
+				<small>Una o dos frases que expliquen por qué importa.</small>
 			</label>
 
 			<div class="a-field">
-				<span id="lbl-cuerpo">Texto de la nota <small>doble clic en una imagen o video para editar su pie</small></span>
+				<span id="lbl-cuerpo">Texto de la nota</span>
 				<div class="ed-box" data-campo="cuerpo">
 					<div class="ed-tools" role="toolbar" aria-label="Formato">
 						<button type="button" data-cmd="bold" title="Negrita (Ctrl+B)"><b>N</b></button>
@@ -86,9 +87,22 @@ const estados: [string, string][] = [
 			</div>
 
 			<label class="a-field">
-				<span>Claves «Sin cáscara» <small>una por línea, hasta 6 (opcional)</small></span>
+				<span>Claves «Sin cáscara»</span>
 				<textarea name="claves" rows="4">{n.claves.join('\n')}</textarea>
+				<small>Una por línea. Máximo 6.</small>
 			</label>
+
+			<section class="a-card" aria-labelledby="h-cal">
+				<h2 id="h-cal">Antes de publicar</h2>
+				<p class="a-muted" id="cal-resumen" aria-live="polite"></p>
+				<ul class="ed-lista" id="cal-lista"></ul>
+			</section>
+
+			<section class="a-card" aria-labelledby="h-prev">
+				<h2 id="h-prev">Cómo se verá</h2>
+				<div class="prev-google" id="prev-google"></div>
+				<div class="prev-social" id="prev-social"></div>
+			</section>
 		</div>
 
 		<aside class="ed-side">
@@ -126,8 +140,9 @@ const estados: [string, string][] = [
 				<h2>Datos</h2>
 				<div class="ed-fields">
 					<label class="a-field">
-						<span>Enlace <small>/noticias/…/</small></span>
+						<span>Enlace</span>
 						<input name="slug" value={n.slug.startsWith('borrador-') ? '' : n.slug} pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="80" placeholder="se genera del título" />
+						<small>Se genera del título; cámbialo solo si hace falta.</small>
 					</label>
 					<label class="a-field">
 						<span>Sección</span>
@@ -142,15 +157,16 @@ const estados: [string, string][] = [
 						<input name="autor" value={n.autor} maxlength="120" />
 					</label>
 					<label class="a-field">
-						<span>Lugar <small>ciudad, provincia</small></span>
+						<span>Lugar</span>
 						<input name="lugar" value={n.lugar} maxlength="160" placeholder="Quito, Pichincha" />
 					</label>
 					<label class="a-field">
-						<span>Fecha de publicación <small>hora de Ecuador</small></span>
+						<span>Fecha de publicación</span>
 						<input type="datetime-local" name="fecha" value={local(n.fecha)} />
+						<small>Hora de Ecuador.</small>
 					</label>
 					<label class="a-field">
-						<span>Actualizado <small>opcional</small></span>
+						<span>Actualizado</span>
 						<input type="datetime-local" name="actualizado" value={local(n.actualizado)} />
 					</label>
 				</div>
@@ -167,18 +183,18 @@ const estados: [string, string][] = [
 				</div>
 				<div class="ed-fields">
 					<label class="a-field">
-						<span>Texto alternativo <small>vacío = el de la imagen</small></span>
+						<span>Texto alternativo</span>
 						<input name="alt" value={n.alt} maxlength="300" />
 					</label>
 					<label class="a-field">
-						<span>Crédito <small>vacío = el de la imagen</small></span>
+						<span>Crédito</span>
 						<input name="credito" value={n.credito} maxlength="200" />
 					</label>
 				</div>
 			</div>
 
 			<div class="a-card">
-				<h2>Ubicación en el mapa <small class="a-muted">(opcional)</small></h2>
+				<h2>Ubicación en el mapa</h2>
 				<div class="ed-fields">
 					<label class="a-field">
 						<span>Provincia</span>

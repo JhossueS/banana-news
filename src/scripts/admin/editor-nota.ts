@@ -5,6 +5,7 @@ import { api, ErrorApi, say } from './api';
 import { elegirMedio } from './selector';
 import { pedir } from './modal';
 import type { MedioVista } from './subir';
+import { iniciarCalidad } from './calidad';
 
 interface Datos {
 	id: string;
@@ -80,7 +81,7 @@ async function insertarYoutube() {
 		titulo: 'Insertar video de YouTube',
 		aceptar: 'Insertar video',
 		campos: [
-			{ name: 'enlace', label: 'Enlace del video', tipo: 'url', requerido: true, placeholder: 'https://youtu.be/…', ayuda: 'Copia el enlace desde la barra del navegador o desde «Compartir» en YouTube.' },
+			{ name: 'enlace', label: 'Enlace del video', tipo: 'url', requerido: true, placeholder: 'https://youtu.be/…', ayuda: 'Pega el enlace de YouTube.' },
 			{ name: 'pie', label: 'Descripción', placeholder: 'Ej.: Rueda de prensa del alcalde' },
 		],
 		validar: (v) => (leerYoutube(v.enlace!) ? null : { campo: 'enlace', mensaje: 'Ese enlace no es de un video de YouTube.' }),
@@ -112,7 +113,7 @@ async function insertarCita() {
 		titulo: 'Insertar cita',
 		aceptar: 'Insertar cita',
 		campos: [
-			{ name: 'texto', label: 'Texto de la cita', tipo: 'textarea', requerido: true, valor: editor.state.doc.textBetween(from, to, '\n').trim(), placeholder: 'Las palabras textuales, sin comillas' },
+			{ name: 'texto', label: 'Texto de la cita', tipo: 'textarea', requerido: true, valor: editor.state.doc.textBetween(from, to, '\n').trim(), placeholder: 'Las palabras textuales, sin comillas', ayuda: 'Escribe las palabras tal cual, sin comillas.' },
 			{ name: 'autor', label: 'Quién lo dice', placeholder: 'Ej.: María Pérez, vocera del COE' },
 		],
 	});
@@ -207,6 +208,7 @@ editor.view.dom.addEventListener('dblclick', async (e) => {
 });
 
 /* ── Imagen principal ── */
+const repintarCalidad = iniciarCalidad({ form, editor, imagen: () => imagen });
 const vista = document.getElementById('portada-vista')!;
 const pintarPortada = () => {
 	vista.innerHTML = imagen?.vista ? `<img src="${imagen.vista}" alt="">` : 'Sin imagen';
@@ -217,11 +219,13 @@ document.getElementById('btn-portada')!.addEventListener('click', async () => {
 	if (!m) return;
 	imagen = m;
 	pintarPortada();
+	repintarCalidad();
 	marcarSucio();
 });
 document.getElementById('btn-portada-quitar')!.addEventListener('click', () => {
 	imagen = null;
 	pintarPortada();
+	repintarCalidad();
 	marcarSucio();
 });
 
