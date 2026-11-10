@@ -6,6 +6,8 @@ import { db, tablas } from '../../../../db/index';
 import { error, exigir, json, leerJson } from '../../../../lib/admin';
 import { medioVista } from '../../../../lib/vistas-admin';
 import { PREFIJO_PUBLICO } from '../../../../lib/nucleo/medios';
+import { ImagenInvalida, optimizarImagen } from '../../../../lib/nucleo/imagenes';
+import { medios as almacen } from '../../../../lib/medios';
 
 export const prerender = false;
 const { medios } = tablas;
@@ -49,14 +51,26 @@ export const POST: APIRoute = async (ctx) => {
 	const p = Entrada.safeParse(await leerJson(ctx.request));
 	if (!p.success) return error(p.error.issues[0]?.message ?? 'Revisa los datos e inténtalo de nuevo.');
 	const d = p.data;
+	let { ancho, alto } = d;
+	if (d.tipo === 'imagen' && d.key) {
+		try {
+			// Genera AVIF y WebP; las medidas reales (con EXIF aplicado) mandan sobre las del navegador
+			({ ancho, alto } = await optimizarImagen(almacen, d.key));
+		} catch (e) {
+			await almacen.borrarImagen(d.key, d.ancho).catch(() => {});
+			if (e instanceof ImagenInvalida) return error(e.message);
+			console.error('[medios] no se pudo optimizar la imagen', e);
+			return error('No pudimos procesar la imagen. Prueba con otro archivo.', 422);
+		}
+	}
 	const [m] = await db
 		.insert(medios)
 		.values({
 			tipo: d.tipo,
 			r2Key: d.key ?? null,
 			streamUid: d.streamUid ?? null,
-			ancho: d.ancho ?? null,
-			alto: d.alto ?? null,
+			ancho: ancho ?? null,
+			alto: alto ?? null,
 			alt: d.alt,
 			credito: d.credito,
 			// Stream procesa el video unos minutos; el webhook (o el botón «comprobar») lo marca listo

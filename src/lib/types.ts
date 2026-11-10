@@ -18,6 +18,8 @@ export interface MapNews {
 export interface ImagenVista {
 	src: string;
 	srcset?: string;
+	/** <source> por formato (AVIF, WebP) para <picture>; sin ellas, un <img> simple */
+	fuentes?: { type: string; srcset: string }[];
 	width?: number;
 	height?: number;
 	alt: string;

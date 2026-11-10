@@ -11,8 +11,9 @@ type FilaNota = typeof noticias.$inferSelect & { imagen: typeof tablas.medios.$i
 export function imagenVista(m: { r2Key: string | null; ancho: number | null; alto: number | null } | null, alt: string, ancho = 1200): ImagenVista | null {
 	if (!m?.r2Key) return null;
 	return {
-		src: medios.urlImagen(m.r2Key, ancho),
+		src: medios.urlImagen(m.r2Key, ancho, m.ancho),
 		srcset: medios.srcsetImagen(m.r2Key, m.ancho),
+		fuentes: medios.fuentesImagen(m.r2Key, m.ancho)?.sources,
 		width: m.ancho ?? undefined,
 		height: m.alto ?? undefined,
 		alt,

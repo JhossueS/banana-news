@@ -1,5 +1,8 @@
 ---
-/** Imagen del CMS (R2 + transformaciones de Cloudflare). Sin imagen, deja un bloque neutro del mismo tamaño. */
+/**
+ * Imagen del CMS. Con variantes optimizadas usa <picture> (AVIF → WebP) y el navegador elige la mejor que soporte;
+ * las anteriores a la optimización siguen como <img>. Sin imagen, deja un bloque neutro del mismo tamaño.
+ */
 import type { ImagenVista } from '../lib/types';
 
 interface Props {
@@ -14,19 +17,24 @@ const { image, sizes = '100vw', class: className, loading = 'lazy', fetchpriorit
 
 {
 	image ? (
-		<img
-			src={image.src}
-			srcset={image.srcset}
-			sizes={image.srcset ? sizes : undefined}
-			alt={image.alt}
-			width={image.width}
-			height={image.height}
-			class={className}
-			loading={loading}
-			fetchpriority={fetchpriority}
-			decoding="async"
-		/>
-	) : (
+		<picture style="display: contents">
+			{image.fuentes?.map((f) => (
+				<source type={f.type} srcset={f.srcset} sizes={sizes} />
+			))}
+			<img
+				src={image.src}
+				srcset={image.srcset}
+				sizes={image.srcset ? sizes : undefined}
+				alt={image.alt}
+				width={image.width}
+				height={image.height}
+				class={className}
+				loading={loading}
+				fetchpriority={fetchpriority}
+				decoding="async"
+			/>
+		</picture>
+) : (
 		<span class:list={[className, 'cms-img-vacia']} role="presentation" />
 	)
 }

@@ -120,6 +120,7 @@ const videos = !!almacen.stream;
 
 <script>
 	import { api, say } from '../../scripts/admin/api';
+	import { confirmar } from '../../scripts/admin/modal';
 
 	document.addEventListener('medio-subido', () => location.reload());
 
@@ -143,7 +144,7 @@ const videos = !!almacen.stream;
 		const st = li.querySelector<HTMLElement>('.a-status');
 		try {
 			if (b.dataset.act === 'borrar') {
-				if (!confirm('¿Borrar este archivo? Si está insertado en alguna nota, dejará de verse.')) return;
+				if (!(await confirmar({ titulo: 'Borrar archivo', mensaje: 'Si está insertado en alguna nota, dejará de verse.', aceptar: 'Borrar', peligro: true }))) return;
 				await api(`/api/admin/medios/${li.dataset.id}`, 'DELETE');
 				li.remove();
 			} else {

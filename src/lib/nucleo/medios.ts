@@ -26,6 +26,29 @@ export const DIR_LOCAL = '.data/media';
 export const PREFIJO_PUBLICO = 'medios/';
 export const PREFIJO_PRIVADO = 'denuncias/';
 
+/** Anchos de las variantes optimizadas y formatos generados (el original se conserva aparte) */
+export const ANCHOS_IMAGEN = [480, 800, 1200, 1600];
+export const FORMATOS_IMAGEN = ['avif', 'webp'] as const;
+export type FormatoImagen = (typeof FORMATOS_IMAGEN)[number];
+
+/** Las imágenes optimizadas viven en una carpeta: `medios/2026/11/<uuid>/original.jpg` + `800.avif`, `800.webp`… */
+export const esOptimizada = (key: string) => /\/original\.[a-z0-9]+$/.test(key);
+export const claveVariante = (key: string, ancho: number, formato: FormatoImagen) => key.replace(/original\.[a-z0-9]+$/, `${ancho}.${formato}`);
+
+/** Anchos útiles para este original (no agranda) */
+export function anchosDe(anchoOriginal?: number | null, anchos = ANCHOS_IMAGEN) {
+	const lista = anchos.filter((w) => !anchoOriginal || w <= anchoOriginal);
+	if (anchoOriginal && !lista.includes(anchoOriginal) && anchoOriginal < (anchos.at(-1) ?? 0)) lista.push(anchoOriginal);
+	return lista;
+}
+
+export interface FuentesImagen {
+	/** Una <source> por formato, del más moderno al más compatible */
+	sources: { type: string; srcset: string }[];
+	src: string;
+	srcset: string;
+}
+
 /** Rechaza cualquier clave con «..», «\\» o ruta absoluta: así el prefijo validado (medios/, denuncias/) es el real */
 const claveSegura = (key: string) => {
 	if (!key || key.startsWith('/') || key.includes('\\') || key.split('/').some((p) => p === '..' || p === '.')) throw new Error('Clave inválida');
@@ -54,7 +77,7 @@ export function crearMedios(cfg: ConfigMedios) {
 		bucketPrivado: !!cfg.r2?.bucketPrivado,
 
 		/** Sube un archivo desde el servidor (adjuntos de denuncias, migración) */
-		async guardar(key: string, cuerpo: Uint8Array, tipo: string) {
+		async guardar(key: string, cuerpo: Uint8Array, tipo: string, inmutable = false) {
 			const k = claveSegura(key);
 			if (local) {
 				const ruta = join(DIR_LOCAL, k);
@@ -63,7 +86,7 @@ export function crearMedios(cfg: ConfigMedios) {
 				return;
 			}
 			const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-			await (await cliente()).send(new PutObjectCommand({ Bucket: bucketDe(k), Key: k, Body: cuerpo, ContentType: tipo }));
+			await (await cliente()).send(new PutObjectCommand({ Bucket: bucketDe(k), Key: k, Body: cuerpo, ContentType: tipo, CacheControl: inmutable ? 'public, max-age=31536000, immutable' : undefined }));
 		},
 
 		async borrar(key: string) {
@@ -123,18 +146,50 @@ export function crearMedios(cfg: ConfigMedios) {
 		},
 
 		/** URL pública de una imagen, opcionalmente redimensionada por Cloudflare */
-		urlImagen(key: string, ancho?: number) {
+		urlImagen(key: string, ancho?: number, anchoOriginal?: number | null) {
 			const base = cfg.baseUrl.replace(/\/$/, '');
+			if (esOptimizada(key) && anchoOriginal) {
+				const lista = anchosDe(anchoOriginal);
+				const w = lista.find((x) => x >= (ancho ?? Infinity)) ?? lista.at(-1)!;
+				return `${base}/${claveVariante(key, w, 'webp')}`;
+			}
 			if (ancho && cfg.transformaciones) return `${base}/cdn-cgi/image/width=${ancho},format=auto,quality=80/${key}`;
 			return `${base}/${key}`;
 		},
 
 		/** srcset con los anchos útiles para este original (no agranda) */
-		srcsetImagen(key: string, anchoOriginal?: number | null, anchos = [480, 800, 1200, 1600]) {
+		srcsetImagen(key: string, anchoOriginal?: number | null, anchos = ANCHOS_IMAGEN) {
+			if (esOptimizada(key) && anchoOriginal) return this.fuentesImagen(key, anchoOriginal)?.srcset;
 			if (!cfg.transformaciones) return undefined;
-			const lista = anchos.filter((w) => !anchoOriginal || w <= anchoOriginal);
-			if (anchoOriginal && !lista.includes(anchoOriginal) && anchoOriginal < (anchos.at(-1) ?? 0)) lista.push(anchoOriginal);
+			const lista = anchosDe(anchoOriginal, anchos);
 			return lista.map((w) => `${this.urlImagen(key, w)} ${w}w`).join(', ');
+		},
+
+		/** <picture>: AVIF y WebP generados al subir. null si la imagen es anterior a la optimización */
+		fuentesImagen(key: string, anchoOriginal?: number | null): FuentesImagen | null {
+			if (!esOptimizada(key) || !anchoOriginal) return null;
+			const base = cfg.baseUrl.replace(/\/$/, '');
+			const lista = anchosDe(anchoOriginal);
+			const set = (f: FormatoImagen) => lista.map((w) => `${base}/${claveVariante(key, w, f)} ${w}w`).join(', ');
+			return {
+				sources: FORMATOS_IMAGEN.map((f) => ({ type: `image/${f}`, srcset: set(f) })),
+				// El <img> de respaldo usa WebP, que ya entienden todos los navegadores vigentes
+				src: this.urlImagen(key, 1200, anchoOriginal),
+				srcset: set('webp'),
+			};
+		},
+
+		/** Lee un archivo recién subido (local o R2) */
+		async leer(key: string): Promise<Uint8Array | null> {
+			return local ? new Uint8Array(await this.leerLocal(key).catch(() => Buffer.alloc(0))) : (await this.leerR2(key))?.cuerpo ?? null;
+		},
+
+		/** Borra el original y todas las variantes de una imagen */
+		async borrarImagen(key: string, anchoOriginal?: number | null) {
+			await this.borrar(key);
+			if (!esOptimizada(key)) return;
+			const claves = anchosDe(anchoOriginal).flatMap((w) => FORMATOS_IMAGEN.map((f) => claveVariante(key, w, f)));
+			await Promise.allSettled(claves.map((k) => this.borrar(k)));
 		},
 
 		urlArchivo(key: string) {

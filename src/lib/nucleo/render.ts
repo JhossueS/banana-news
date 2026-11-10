@@ -23,9 +23,13 @@ export function renderCuerpo(doc: JSONContent, medios: Medios) {
 					if (!a.key) return '';
 					const srcset = medios.srcsetImagen(a.key, a.ancho);
 					const dims = a.ancho && a.alto ? ` width="${a.ancho}" height="${a.alto}"` : '';
-					return `<figure class="fig"><img src="${escapeHTMLAttribute(medios.urlImagen(a.key, 1200))}"${
-						srcset ? ` srcset="${escapeHTMLAttribute(srcset)}" sizes="(min-width: 900px) 760px, 100vw"` : ''
-					} alt="${escapeHTMLAttribute(a.alt)}"${dims} loading="lazy" decoding="async">${caption(a.pie, a.credito)}</figure>`;
+					const sizes = ' sizes="(min-width: 900px) 760px, 100vw"';
+					const fuentes = medios.fuentesImagen(a.key, a.ancho)?.sources ?? [];
+					const sources = fuentes.map((f) => `<source type="${f.type}" srcset="${escapeHTMLAttribute(f.srcset)}"${sizes}>`).join('');
+					const img = `<img src="${escapeHTMLAttribute(medios.urlImagen(a.key, 1200, a.ancho))}"${
+						srcset ? ` srcset="${escapeHTMLAttribute(srcset)}"${sizes}` : ''
+					} alt="${escapeHTMLAttribute(a.alt)}"${dims} loading="lazy" decoding="async">`;
+					return `<figure class="fig">${sources ? `<picture>${sources}${img}</picture>` : img}${caption(a.pie, a.credito)}</figure>`;
 				},
 				videoBloque: ({ node }) => {
 					const a = node.attrs as AttrsVideo;
@@ -58,9 +62,10 @@ export function renderCuerpo(doc: JSONContent, medios: Medios) {
 
 export function sanear(html: string) {
 	return sanitizeHtml(html, {
-		allowedTags: ['p', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'strong', 'em', 'u', 's', 'a', 'br', 'hr', 'figure', 'figcaption', 'img', 'iframe', 'video', 'div', 'span'],
+		allowedTags: ['p', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'strong', 'em', 'u', 's', 'a', 'br', 'hr', 'figure', 'figcaption', 'picture', 'source', 'img', 'iframe', 'video', 'div', 'span'],
 		allowedAttributes: {
 			a: ['href', 'rel', 'target'],
+			source: ['type', 'srcset', 'sizes'],
 			img: ['src', 'srcset', 'sizes', 'alt', 'width', 'height', 'loading', 'decoding'],
 			iframe: ['src', 'title', 'loading', 'allow', 'allowfullscreen', 'referrerpolicy'],
 			video: ['src', 'controls', 'preload', 'title'],

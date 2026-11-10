@@ -44,6 +44,8 @@ export const POST: APIRoute = async (ctx) => {
 
 	const ext = (nombre.split('.').pop() ?? '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || (tipo === 'imagen' ? 'jpg' : 'mp4');
 	const mes = new Date().toISOString().slice(0, 7).replace('-', '/');
-	const key = `${PREFIJO_PUBLICO}${mes}/${randomUUID()}.${ext}`;
+	const id = randomUUID();
+	// Las fotos van a su propia carpeta para guardar junto al original las variantes AVIF/WebP
+	const key = tipo === 'imagen' && ext !== 'gif' ? `${PREFIJO_PUBLICO}${mes}/${id}/original.${ext}` : `${PREFIJO_PUBLICO}${mes}/${id}.${ext}`;
 	return json({ modo: 'put', url: await medios.urlSubida(key, contentType), key, contentType });
 };

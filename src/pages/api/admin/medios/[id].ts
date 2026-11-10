@@ -48,6 +48,6 @@ export const DELETE: APIRoute = async (ctx) => {
 	const enUso = await db.query.noticias.findFirst({ where: eq(tablas.noticias.imagenId, m.id), columns: { titulo: true } });
 	if (enUso) return error(`Es la imagen principal de «${enUso.titulo}». Cámbiala antes de borrarla.`, 409);
 	await db.delete(medios).where(eq(medios.id, m.id));
-	if (m.r2Key) await almacen.borrar(m.r2Key).catch((e) => console.error('[medios] no se pudo borrar el archivo', e));
+	if (m.r2Key) await almacen.borrarImagen(m.r2Key, m.ancho).catch((e) => console.error('[medios] no se pudo borrar el archivo', e));
 	return json({ ok: true });
 };
