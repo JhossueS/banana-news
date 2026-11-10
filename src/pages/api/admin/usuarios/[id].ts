@@ -21,9 +21,9 @@ export const PATCH: APIRoute = async (ctx) => {
 	if (no) return no;
 	const id = ctx.params.id!;
 	const u = await db.query.user.findFirst({ where: eq(tablas.user.id, id) });
-	if (!u) return error('No existe', 404);
+	if (!u) return error('No encontramos lo que buscas.', 404);
 	const p = Cambios.safeParse(await leerJson(ctx.request));
-	if (!p.success) return error('Datos inválidos');
+	if (!p.success) return error('Revisa los datos e inténtalo de nuevo.');
 	const yo = id === ctx.locals.usuario!.id;
 	if (p.data.rol && yo && p.data.rol !== 'admin') return error('No puedes quitarte el rol de administrador.');
 	if (p.data.restablecer && yo) return error('Para cambiar tu propia contraseña usa «¿Olvidaste tu contraseña?» en la pantalla de ingreso.');

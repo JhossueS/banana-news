@@ -47,7 +47,7 @@ export const POST: APIRoute = async (ctx) => {
 	const no = exigir(ctx, 'medios');
 	if (no) return no;
 	const p = Entrada.safeParse(await leerJson(ctx.request));
-	if (!p.success) return error(p.error.issues[0]?.message ?? 'Datos inválidos');
+	if (!p.success) return error(p.error.issues[0]?.message ?? 'Revisa los datos e inténtalo de nuevo.');
 	const d = p.data;
 	const [m] = await db
 		.insert(medios)

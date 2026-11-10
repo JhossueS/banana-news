@@ -14,16 +14,19 @@ const accept = !videos || acepta === 'imagen' ? 'image/*' : acepta === 'video' ?
 
 <form class="a-subir" data-subir {id} novalidate>
 	<label class="a-field">
-		<span>Archivo {!videos && <small>imágenes JPG, PNG, WebP, AVIF o GIF</small>}</span>
+		<span>Archivo</span>
 		<input type="file" name="archivo" accept={accept} required />
+		<small>{videos ? 'Imágenes (JPG, PNG, WebP, AVIF, GIF) o video.' : 'JPG, PNG, WebP, AVIF o GIF.'}</small>
 	</label>
 	<label class="a-field">
-		<span>Texto alternativo <small>qué se ve (para lectores de pantalla)</small></span>
+		<span>Texto alternativo</span>
 		<input type="text" name="alt" maxlength="300" />
+		<small>Describe lo que se ve en la imagen.</small>
 	</label>
 	<label class="a-field">
-		<span>Crédito <small>autor o fuente</small></span>
+		<span>Crédito</span>
 		<input type="text" name="credito" maxlength="200" placeholder="Foto: …" />
+		<small>Ej.: Foto: Nombre Apellido.</small>
 	</label>
 	<button type="submit" class="a-btn a-btn--amarillo">Subir</button>
 	<progress max="1" value="0" hidden></progress>
@@ -57,7 +60,7 @@ const accept = !videos || acepta === 'imagen' ? 'image/*' : acepta === 'video' ?
 					say(status, `Subiendo… ${Math.round(p * 100)} %`);
 				});
 				form.reset();
-				say(status, m.listo ? 'Listo.' : 'Subido. Cloudflare Stream está procesando el video (unos minutos).', 'ok');
+				say(status, m.listo ? 'Listo.' : 'Subido.', 'ok');
 				form.dispatchEvent(new CustomEvent('medio-subido', { detail: m, bubbles: true }));
 			} catch (err) {
 				say(status, (err as Error).message, 'error');

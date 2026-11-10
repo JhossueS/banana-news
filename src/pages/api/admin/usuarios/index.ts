@@ -11,8 +11,8 @@ import { enviarEnlace } from '../../../../lib/avisos-cuenta';
 export const prerender = false;
 
 const Entrada = z.object({
-	email: z.email('Correo inválido').max(200),
-	name: z.string().trim().min(2, 'Escribe el nombre').max(120),
+	email: z.email('Escribe un correo válido.').max(200),
+	name: z.string().trim().min(2, 'Escribe el nombre de la persona.').max(120),
 	rol: z.enum(tablas.rol.enumValues),
 });
 
@@ -20,7 +20,7 @@ export const POST: APIRoute = async (ctx) => {
 	const no = exigir(ctx, 'usuarios');
 	if (no) return no;
 	const p = Entrada.safeParse(await leerJson(ctx.request));
-	if (!p.success) return error(p.error.issues[0]?.message ?? 'Datos inválidos');
+	if (!p.success) return error(p.error.issues[0]?.message ?? 'Revisa los datos e inténtalo de nuevo.');
 	const email = p.data.email.toLowerCase();
 	const existe = await db.query.user.findFirst({ where: eq(tablas.user.email, email), columns: { id: true } });
 	if (existe) return error('Ya existe una cuenta con ese correo.', 409);

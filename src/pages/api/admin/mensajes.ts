@@ -12,7 +12,7 @@ export const POST: APIRoute = async (ctx) => {
 	const no = exigir(ctx, 'mensajes');
 	if (no) return no;
 	const p = Entrada.safeParse(await leerJson(ctx.request));
-	if (!p.success) return error('Datos inválidos');
+	if (!p.success) return error('Revisa los datos e inténtalo de nuevo.');
 	const t = tablas.mensajes;
 	if (p.data.borrar) await db.delete(t).where(eq(t.id, p.data.id));
 	else if (p.data.estado) await db.update(t).set({ estado: p.data.estado }).where(eq(t.id, p.data.id));

@@ -38,7 +38,7 @@ export const NotaEntrada = z
 		provincia: z
 			.string()
 			.nullable()
-			.refine((c) => c === null || codigosProvincia.includes(c), 'Provincia inválida'),
+			.refine((c) => c === null || codigosProvincia.includes(c), 'Elige una provincia de Ecuador.'),
 		ciudad: z.string().trim().max(120),
 		publicacion: z.enum(['borrador', 'publicada']),
 	})

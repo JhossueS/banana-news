@@ -17,7 +17,7 @@ export const GET: APIRoute = async (ctx) => {
 	const no = exigir(ctx, 'medios');
 	if (no) return no;
 	let m = await buscar(ctx.params.id!);
-	if (!m) return error('No existe', 404);
+	if (!m) return error('No encontramos lo que buscas.', 404);
 	if (m.streamUid && !m.listo && ctx.url.searchParams.has('comprobar')) {
 		const e = await almacen.videoListo(m.streamUid);
 		if (typeof e === 'object' && e.listo) {
@@ -33,9 +33,9 @@ export const PATCH: APIRoute = async (ctx) => {
 	const no = exigir(ctx, 'medios');
 	if (no) return no;
 	const m = await buscar(ctx.params.id!);
-	if (!m) return error('No existe', 404);
+	if (!m) return error('No encontramos lo que buscas.', 404);
 	const p = Cambios.safeParse(await leerJson(ctx.request));
-	if (!p.success) return error('Datos inválidos');
+	if (!p.success) return error('Revisa los datos e inténtalo de nuevo.');
 	const [act] = await db.update(medios).set(p.data).where(eq(medios.id, m.id)).returning();
 	return json(medioVista(act!));
 };
@@ -44,7 +44,7 @@ export const DELETE: APIRoute = async (ctx) => {
 	const no = exigir(ctx, 'medios');
 	if (no) return no;
 	const m = await buscar(ctx.params.id!);
-	if (!m) return error('No existe', 404);
+	if (!m) return error('No encontramos lo que buscas.', 404);
 	const enUso = await db.query.noticias.findFirst({ where: eq(tablas.noticias.imagenId, m.id), columns: { titulo: true } });
 	if (enUso) return error(`Es la imagen principal de «${enUso.titulo}». Cámbiala antes de borrarla.`, 409);
 	await db.delete(medios).where(eq(medios.id, m.id));

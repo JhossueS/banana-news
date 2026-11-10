@@ -23,7 +23,7 @@ export const PUT: APIRoute = async (ctx) => {
 	const p = NotaEntrada.safeParse(await leerJson(ctx.request));
 	if (!p.success) {
 		const i = p.error.issues[0];
-		return json({ error: i?.message ?? 'Datos inválidos', campo: i?.path[0] }, 400);
+		return json({ error: i?.message ?? 'Revisa los datos e inténtalo de nuevo.', campo: i?.path[0] }, 400);
 	}
 	const d = p.data;
 

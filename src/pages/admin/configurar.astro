@@ -5,7 +5,7 @@
  */
 import Layout from '../../layouts/Layout.astro';
 import Logo from '../../components/Logo.astro';
-import { hayCuentas, MIN_TOKEN, tokenConfigurado } from '../../lib/instalacion';
+import { hayCuentas, tokenConfigurado } from '../../lib/instalacion';
 
 export const prerender = false;
 
@@ -22,11 +22,9 @@ const listo = tokenConfigurado();
 			{
 				listo ? (
 					<>
-						<p class="nota">Crea la cuenta de administración. Esta página deja de existir en cuanto la cuenta queda creada.</p>
 						<label class="field">
 							<span>Código de instalación</span>
 							<input type="password" name="token" required autocomplete="off" spellcheck="false" />
-							<small>El valor de <code>SETUP_TOKEN</code> en las variables de Railway.</small>
 						</label>
 						<label class="field">
 							<span>Tu nombre</span>
@@ -39,7 +37,7 @@ const listo = tokenConfigurado();
 						<label class="field">
 							<span>Contraseña</span>
 							<input type="password" name="password" required minlength="12" maxlength="128" autocomplete="new-password" />
-							<small>Al menos 12 caracteres. Mejor una frase: cuatro palabras al azar.</small>
+							<small>Mínimo 12 caracteres. Una frase fácil de recordar funciona bien.</small>
 						</label>
 						<label class="field">
 							<span>Repítela</span>
@@ -49,10 +47,7 @@ const listo = tokenConfigurado();
 						<p class="status" id="configurar-status" role="status" aria-live="polite" />
 					</>
 				) : (
-					<p class="nota">
-						Para crear la primera cuenta, define la variable <code>SETUP_TOKEN</code> en Railway (al menos {MIN_TOKEN} caracteres,
-						por ejemplo con <code>openssl rand -hex 32</code>), vuelve a desplegar y recarga esta página.
-					</p>
+					<p class="nota">Falta configurar el código de instalación en el servidor.</p>
 				)
 			}
 		</form>
@@ -99,6 +94,11 @@ const listo = tokenConfigurado();
 	.field small {
 		font-weight: 500;
 		color: var(--bn-gris-600);
+	}
+	.field small {
+		font-size: 12px;
+		font-weight: 500;
+		opacity: 0.7;
 	}
 	.field input {
 		min-height: 48px;

@@ -32,6 +32,7 @@ import Turnstile from '../components/Turnstile.astro';
 					<label class="field">
 						<span>Titular</span>
 						<input type="text" name="titular" autocomplete="off" placeholder="Verbo en presente, sujeto concreto" />
+					<small>Corto y directo. Ej.: “Cierran la vía a Baños por un derrumbe”.</small>
 					</label>
 					<label class="field">
 						<span>Sección</span>
@@ -47,6 +48,7 @@ import Turnstile from '../components/Turnstile.astro';
 						<span>Bajada</span>
 						<textarea name="bajada" rows="3" placeholder="Una frase que explique por qué importa"></textarea>
 					</label>
+					<small class="aporte-ayuda">Tu aporte se verá como “sin verificar” hasta que lo revisemos.</small>
 					<Turnstile />
 					<button type="submit" class="submit" id="btn-publish" disabled>
 						<Icon name="map-pin" size={18} />
@@ -99,6 +101,12 @@ import Turnstile from '../components/Turnstile.astro';
 		gap: 6px;
 		font-size: 13px;
 		font-weight: 600;
+	}
+	.aporte-ayuda,
+	.field small {
+		font-size: 12px;
+		font-weight: 500;
+		opacity: 0.7;
 	}
 	.field input,
 	.field select,

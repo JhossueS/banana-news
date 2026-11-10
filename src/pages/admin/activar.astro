@@ -15,10 +15,10 @@ export const prerender = false;
 		<form class="card" id="form-activar" novalidate>
 			<span class="logo"><Logo height={32} /></span>
 			<h1>Elige tu contraseña</h1>
-			<p class="nota">Al menos 12 caracteres. Mejor una frase que puedas recordar, por ejemplo cuatro palabras al azar.</p>
 			<label class="field">
 				<span>Contraseña nueva</span>
 				<input type="password" name="clave" required minlength="12" maxlength="128" autocomplete="new-password" />
+				<small>Mínimo 12 caracteres. Una frase fácil de recordar funciona bien.</small>
 			</label>
 			<label class="field">
 				<span>Repítela</span>
@@ -61,6 +61,11 @@ export const prerender = false;
 		gap: 6px;
 		font-size: 13px;
 		font-weight: 700;
+	}
+	.field small {
+		font-size: 12px;
+		font-weight: 500;
+		opacity: 0.7;
 	}
 	.field input {
 		min-height: 48px;

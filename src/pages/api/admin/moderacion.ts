@@ -38,13 +38,13 @@ export const POST: APIRoute = async (ctx) => {
 	const no = exigir(ctx, 'moderacion');
 	if (no) return no;
 	const p = Entrada.safeParse(await leerJson(ctx.request));
-	if (!p.success) return error(p.error.issues[0]?.message ?? 'Datos inválidos');
+	if (!p.success) return error(p.error.issues[0]?.message ?? 'Revisa los datos e inténtalo de nuevo.');
 	const d = p.data;
 
 	if (d.tipo === 'mapa') {
 		const t = tablas.reportesMapa;
 		const r = await db.query.reportesMapa.findFirst({ where: eq(t.id, d.id) });
-		if (!r) return error('No existe', 404);
+		if (!r) return error('No encontramos lo que buscas.', 404);
 		if (d.accion === 'borrar') await db.delete(t).where(eq(t.id, r.id));
 		else if (d.accion === 'enlazar') {
 			// Enlazar a una nota publicada la da por verificada
@@ -56,7 +56,7 @@ export const POST: APIRoute = async (ctx) => {
 
 	const t = tablas.denuncias;
 	const den = await db.query.denuncias.findFirst({ where: eq(t.id, d.id) });
-	if (!den) return error('No existe', 404);
+	if (!den) return error('No encontramos lo que buscas.', 404);
 	if (d.accion === 'borrar') {
 		await db.delete(t).where(eq(t.id, den.id));
 		if (den.adjuntoKey) await medios.borrar(den.adjuntoKey).catch(() => {});

@@ -17,7 +17,7 @@ const Entrada = z.object({
 
 export const POST: APIRoute = async (ctx) => {
 	if (await hayCuentas()) return error('No existe', 404);
-	if (!tokenConfigurado()) return error('Falta configurar SETUP_TOKEN en el servidor.', 503);
+	if (!tokenConfigurado()) return error('Instalación no disponible.', 503);
 
 	let address: string | undefined;
 	try {
@@ -30,7 +30,7 @@ export const POST: APIRoute = async (ctx) => {
 	}
 
 	const p = Entrada.safeParse(await leerJson(ctx.request));
-	if (!p.success) return error(p.error.issues[0]?.message ?? 'Datos inválidos');
+	if (!p.success) return error(p.error.issues[0]?.message ?? 'Revisa los datos e inténtalo de nuevo.');
 	if (!tokenCorrecto(p.data.token)) return error('El código de instalación no es correcto.', 403);
 
 	const creada = await crearAdminInicial(p.data);

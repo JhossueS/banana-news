@@ -55,10 +55,6 @@ const etiqueta = { 'sin-verificar': 'Sin verificar', verificado: 'Verificadas', 
 			))
 		}
 	</div>
-	<p class="a-muted intro">
-		Lo «sin verificar» ya es visible en el sitio con esa etiqueta. Rechazar lo oculta al instante; verificar cambia la etiqueta.
-	</p>
-
 	{
 		tipo === 'mapa' &&
 			(reportes.length ? (
@@ -146,7 +142,7 @@ const etiqueta = { 'sin-verificar': 'Sin verificar', verificado: 'Verificadas', 
 											<input name="ciudad" value={d.lugar.split(',')[0]} />
 										</label>
 										<label class="a-field">
-											<span>Coordenadas <small>lat, lon</small></span>
+											<span>Coordenadas</span>
 											<input name="coords" placeholder="-2.1894, -79.8891" />
 										</label>
 										<button class="a-btn a-btn--sm a-btn--amarillo" data-accion="ubicar">Crear punto</button>
@@ -164,9 +160,6 @@ const etiqueta = { 'sin-verificar': 'Sin verificar', verificado: 'Verificadas', 
 </AdminLayout>
 
 <style>
-	.intro {
-		margin-bottom: 16px;
-	}
 	.items {
 		display: flex;
 		flex-direction: column;

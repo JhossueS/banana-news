@@ -26,13 +26,13 @@ export const POST: APIRoute = async (ctx) => {
 	const no = exigir(ctx, 'medios');
 	if (no) return no;
 	const p = Entrada.safeParse(await leerJson(ctx.request));
-	if (!p.success) return error('Datos inválidos');
+	if (!p.success) return error('Revisa los datos e inténtalo de nuevo.');
 	const { tipo, nombre, contentType, tamano } = p.data;
 
 	if (tipo === 'imagen' && (!/^image\/(jpeg|png|webp|avif|gif)$/.test(contentType) || tamano > MAX_IMAGEN)) {
 		return error('Sube una imagen JPG, PNG, WebP, AVIF o GIF de hasta 25 MB.');
 	}
-	if (tipo === 'video' && !medios.stream) return error('Subir videos estará disponible próximamente. Por ahora usa + YouTube en el editor.');
+	if (tipo === 'video' && !medios.stream) return error('Subir videos estará disponible próximamente. Por ahora usa el botón «+ YouTube» del editor.');
 	if (tipo === 'video' && (!contentType.startsWith('video/') || tamano > MAX_VIDEO)) return error('Sube un video de hasta 2 GB.');
 
 	if (tipo === 'video' && medios.stream) {

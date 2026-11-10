@@ -66,14 +66,14 @@ export const server = {
 				enviarCorreo({
 					para: buzon(input.asunto),
 					asunto: `[Contacto · ${input.asunto}] ${input.nombre}`,
-					texto: `${input.nombre} <${input.correo}> escribió:\n\n${input.mensaje}\n\n— Responde a este correo o revísalo en /admin/mensajes`,
+					texto: `${input.nombre} <${input.correo}> escribió:\n\n${input.mensaje}\n\n`,
 					responderA: input.correo,
 				}),
 				enviarCorreo({
 					para: input.correo,
 					asunto: 'Recibimos tu mensaje · Banana News',
 					// Sin datos del formulario: así nadie puede usar este aviso para mandar texto propio a terceros
-						texto: 'Hola:\n\nRecibimos tu mensaje y te responderemos en días hábiles. Si no escribiste a Banana News, ignora este correo.\n\n— Banana News',
+						texto: 'Hola:\n\nRecibimos tu mensaje y te responderemos lo mas pronto posible. Si no escribiste a Banana News, ignora este correo.\n\n— Banana News',
 				}),
 			]);
 			return { ok: true };
@@ -89,7 +89,7 @@ export const server = {
 				.instanceof(File)
 				.optional()
 				.refine((f) => !f || f.size === 0 || f.size <= MAX_ADJUNTO, 'El archivo pesa más de 50 MB.')
-				.refine((f) => !f || f.size === 0 || /^(image|video)\//.test(f.type), 'Solo se admiten fotos o videos.'),
+				.refine((f) => !f || f.size === 0 || /^(image|video)\//.test(f.type), 'Solo se admiten fotos.'),
 				// El tipo real se comprueba por los bytes del archivo en el handler
 			contacto: z.string().trim().max(200).optional(),
 			...antispam,
@@ -101,7 +101,7 @@ export const server = {
 				const bytes = new Uint8Array(await input.adjunto.arrayBuffer());
 				// Nunca confiar en el tipo ni en la extensión que manda el navegador (un SVG o HTML podría ejecutar código)
 				const real = detectarTipo(bytes);
-				if (!real) throw new ActionError({ code: 'BAD_REQUEST', message: 'Solo se admiten fotos (JPG, PNG, WebP, HEIC) o videos (MP4, MOV, WebM).' });
+				if (!real) throw new ActionError({ code: 'BAD_REQUEST', message: 'Solo se admiten fotos (JPG, PNG, WebP, HEIC).' });
 				adjuntoKey = `${PREFIJO_PRIVADO}${new Date().toISOString().slice(0, 7)}/${randomUUID()}.${real.ext}`;
 				await medios.guardar(adjuntoKey, bytes, real.tipo);
 			}
@@ -119,7 +119,7 @@ export const server = {
 				enviarCorreo({
 					para: CORREO_DESTINO ?? site.correos.redaccion,
 					asunto: `[Denuncia sin verificar] ${input.lugar}`,
-					texto: `${input.relato}\n\nLugar: ${input.lugar}\nAdjunto: ${adjuntoKey ? 'sí' : 'no'}\n\nYa aparece en la portada como «sin verificar».`,
+					texto: `${input.relato}\n\nLugar: ${input.lugar}\nAdjunto: ${adjuntoKey ? 'sí' : 'no'}`,
 				}),
 			]);
 			return { ok: true };
@@ -129,7 +129,7 @@ export const server = {
 	publicarMapa: defineAction({
 		accept: 'form',
 		input: z.object({
-			titular: z.string().trim().min(8, 'Escribe un titular de al menos 8 caracteres: verbo en presente y sujeto concreto.').max(160),
+			titular: z.string().trim().min(8, 'Escribe un titular de al menos 8 caracteres.').max(160),
 			seccion: z.enum(['Ciudad', 'Política', 'Economía', 'Ambiente', 'Última hora']),
 			bajada: z.string().trim().max(400).optional(),
 			lat: z.coerce.number(),
@@ -160,7 +160,7 @@ export const server = {
 				enviarCorreo({
 					para: CORREO_DESTINO ?? site.correos.redaccion,
 					asunto: `[Mapa sin verificar] ${input.titular}`,
-					texto: `${input.titular}\n${input.bajada ?? ''}\n\n${ciudad}, ${nombreProvincia(input.provincia)} (${input.lat}, ${input.lon})\n\nYa aparece en el mapa como «sin verificar».`,
+					texto: `${input.titular}\n${input.bajada ?? ''}\n\n${ciudad}, ${nombreProvincia(input.provincia)} (${input.lat}, ${input.lon})`,
 				}),
 			]);
 			return { ok: true };

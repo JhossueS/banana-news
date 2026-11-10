@@ -11,10 +11,10 @@ export const PUT: APIRoute = async (ctx) => {
 	const no = exigir(ctx, 'medios');
 	if (no) return no;
 	const key = ctx.params.key ?? '';
-	if (!medios.local) return error('Solo disponible sin R2', 404);
-	if (!key.startsWith(PREFIJO_PUBLICO)) return error('Clave inválida');
+	if (!medios.local) return error('Esta subida no está disponible.', 404);
+	if (!key.startsWith(PREFIJO_PUBLICO)) return error('No pudimos guardar el archivo. Inténtalo de nuevo.');
 	const buf = new Uint8Array(await ctx.request.arrayBuffer());
-	if (!buf.byteLength || buf.byteLength > MAX) return error('Archivo vacío o demasiado grande');
+	if (!buf.byteLength || buf.byteLength > MAX) return error('El archivo está vacío o pesa demasiado.');
 	await medios.guardar(key, buf, ctx.request.headers.get('content-type') ?? 'application/octet-stream');
 	return json({ ok: true });
 };
