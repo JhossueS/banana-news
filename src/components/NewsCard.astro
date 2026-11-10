@@ -66,6 +66,19 @@ const { variant = 'principal', image, title, deck, tag, kicker, href = '#', prio
 	.card {
 		position: relative;
 	}
+	/* Un título o bajada muy largos (o una palabra sin cortes) no deben romper la tarjeta */
+	.title,
+	.deck {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+	.deck {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 4;
+		line-clamp: 4;
+		overflow: hidden;
+	}
 	.title {
 		font-weight: 800;
 		line-height: 1.04;
@@ -201,6 +214,10 @@ const { variant = 'principal', image, title, deck, tag, kicker, href = '#', prio
 	@media (max-width: 480px) {
 		.principal {
 			min-height: 400px;
+		}
+		.principal .deck {
+			-webkit-line-clamp: 3;
+			line-clamp: 3;
 		}
 		.horizontal .title {
 			font-size: 18px;
