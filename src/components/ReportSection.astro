@@ -32,6 +32,7 @@ const { recientes } = Astro.props;
 				<label class="field">
 					<span>¿Qué pasó?</span>
 					<textarea name="relato" rows="3" required minlength="15" placeholder="Describe el hecho con fecha y lugar"></textarea>
+					<small>Mientras más claro, mejor: qué ocurrió y cuándo.</small>
 				</label>
 				<label class="field">
 					<span>¿Dónde?</span>
@@ -40,7 +41,9 @@ const { recientes } = Astro.props;
 				<label class="field">
 					<span>Tu contacto <em class="opt">(opcional, no se publica)</em></span>
 					<input type="text" name="contacto" autocomplete="email" placeholder="Correo o teléfono, si quieres que te contactemos" />
+					<small>Solo lo verá la redacción.</small>
 				</label>
+				<small class="adj-ayuda">Una foto ayuda a verificarlo. Hasta 50 MB.</small>
 				<Turnstile theme="dark" />
 				<div class="actions">
 					<input type="file" id="adjunto" name="adjunto" accept="image/*,video/*" hidden />
@@ -193,6 +196,12 @@ const { recientes } = Astro.props;
 		gap: 6px;
 		font-size: 13px;
 		font-weight: 600;
+	}
+	.adj-ayuda,
+	.field small {
+		font-size: 12px;
+		font-weight: 500;
+		opacity: 0.7;
 	}
 	.field input,
 	.field textarea {
@@ -379,6 +388,7 @@ const { recientes } = Astro.props;
 <script>
 	import { actions } from 'astro:actions';
 	import { conBoton, leerError, renovarTurnstile } from '../scripts/envio';
+	import { evento } from '../scripts/analitica';
 
 	const form = document.getElementById('form-denuncia') as HTMLFormElement | null;
 	const status = document.getElementById('denuncia-status');
@@ -431,6 +441,7 @@ const { recientes } = Astro.props;
 			say(mensaje, 'error');
 			return;
 		}
+		evento('denuncia_enviada', { adjunto: f ? 'si' : 'no' });
 		form.reset();
 		if (fileLabel) fileLabel.textContent = 'Adjuntar foto o video';
 		say('Recibimos tu denuncia. Ya aparece como «sin verificar» y la redacción la revisará.', 'ok');

@@ -18,6 +18,23 @@ const { class: className } = Astro.props;
 	.prose :global(> * + *) {
 		margin-top: 1.1em;
 	}
+	.prose :global(table) {
+		display: block;
+		overflow-x: auto;
+		border-collapse: collapse;
+		font-size: 15px;
+		line-height: 1.5;
+	}
+	.prose :global(th),
+	.prose :global(td) {
+		padding: 10px 12px;
+		border-bottom: 1px solid var(--line-soft);
+		text-align: left;
+		vertical-align: top;
+	}
+	.prose :global(th) {
+		font-weight: 800;
+	}
 	.prose :global(h2) {
 		margin-top: 1.8em;
 		font-size: clamp(24px, 2.6vw, 28px);

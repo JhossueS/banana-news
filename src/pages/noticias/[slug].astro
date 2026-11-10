@@ -11,7 +11,7 @@ import Prose from '../../components/Prose.astro';
 import CmsImage from '../../components/CmsImage.astro';
 import { getNoticiaPorSlug, relacionadas as buscarRelacionadas } from '../../lib/noticias';
 import { cachePublico } from '../../lib/cache';
-import { absoluta, hrefAutor, hrefSeccion, esFirmaInstitucional, organizacion } from '../../lib/seo';
+import { absoluta, hrefAutor, hrefSeccion, esFirmaInstitucional, organizacion, recortar, tituloSeo } from '../../lib/seo';
 
 export const prerender = false;
 
@@ -58,7 +58,7 @@ const shareText = encodeURIComponent(`${n.titulo} · Banana News`);
 const shareUrl = encodeURIComponent(url);
 ---
 
-<Layout title={`${n.titulo} · Banana News`} description={n.bajada} type="article" image={og} imageAlt={n.imagen?.alt} canonical={ruta} schema={[articulo]}>
+<Layout title={tituloSeo(n.titulo)} description={recortar(n.bajada, 160)} type="article" image={og} imageAlt={n.imagen?.alt} imageWidth={n.imagen?.width} imageHeight={n.imagen?.height} canonical={ruta} schema={[articulo]}>
 	<meta slot="head" property="article:published_time" content={articulo.datePublished} />
 	<meta slot="head" property="article:modified_time" content={articulo.dateModified} />
 	<meta slot="head" property="article:section" content={n.seccion} />
@@ -146,7 +146,7 @@ const shareUrl = encodeURIComponent(url);
 						<Fragment set:html={n.cuerpoHtml} />
 					</Prose>
 
-					<footer class="end">
+					<footer class="end" id="fin-nota" data-seccion={n.seccion} data-autor={n.autor}>
 						<p class="end-note">
 							<Icon name="megaphone" size={18} />
 							<span>¿Tienes información sobre este tema? <a href="/#denuncias">Envíanos tu denuncia</a>, puede ser anónima.</span>
@@ -530,6 +530,22 @@ const shareUrl = encodeURIComponent(url);
 </style>
 
 <script>
+	import { evento } from '../../scripts/analitica';
+
+	const fin = document.getElementById('fin-nota');
+	if (fin && 'IntersectionObserver' in window) {
+		const obs = new IntersectionObserver((entradas) => {
+			if (!entradas.some((e) => e.isIntersecting)) return;
+			obs.disconnect();
+			evento('nota_leida', { seccion: fin.dataset.seccion ?? '', autor: fin.dataset.autor ?? '' });
+		});
+		obs.observe(fin);
+	}
+
+	document.querySelectorAll<HTMLAnchorElement>('.share a.share-btn').forEach((a) =>
+		a.addEventListener('click', () => evento('share', { method: a.textContent?.replace('Compartir en', '').trim() ?? '', content_type: 'article' })),
+	);
+
 	const btn = document.getElementById('copiar') as HTMLButtonElement | null;
 	const label = document.getElementById('copiar-label');
 	btn?.addEventListener('click', async () => {
@@ -541,6 +557,7 @@ const shareUrl = encodeURIComponent(url);
 				return;
 			}
 			await navigator.clipboard.writeText(url);
+			evento('share', { method: 'copiar', content_type: 'article' });
 			btn.dataset.ok = '';
 			if (label) label.textContent = 'Enlace copiado';
 			setTimeout(() => {

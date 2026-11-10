@@ -62,5 +62,26 @@ export const organizacion = () => ({
 	sameAs: redesActivas.map((r) => r.url),
 });
 
+/** Recorta en el límite de una palabra y agrega «…» si el texto no cabe */
+export const recortar = (texto: string, max: number) => {
+	const t = texto.replace(/\s+/g, ' ').trim();
+	if (t.length <= max) return t;
+	const corte = t.slice(0, max - 1);
+	return `${corte.slice(0, corte.lastIndexOf(' ') > max * 0.6 ? corte.lastIndexOf(' ') : corte.length).replace(/[\s,;:.\-–—]+$/, '')}…`;
+};
+
+/** Título de la pestaña (≈60 caracteres): con la marca si cabe; si no, solo el titular recortado */
+export const tituloSeo = (titulo: string) => {
+	const completo = `${titulo} · ${NOMBRE_SITIO}`;
+	return completo.length <= 60 ? completo : recortar(titulo, 60);
+};
+
+/** Handle de X para la tarjeta de Twitter, tomado del perfil oficial */
+export const usuarioX = () => {
+	const url = site.redes.X;
+	const m = url && /(?:x|twitter)\.com\/([A-Za-z0-9_]+)/.exec(url);
+	return m ? `@${m[1]}` : undefined;
+};
+
 /** Escapa texto para XML (sitemaps y RSS) */
 export const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');

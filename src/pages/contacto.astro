@@ -87,6 +87,7 @@ const asuntos = [
 				<label class="field">
 					<span>Mensaje</span>
 					<textarea name="mensaje" rows="6" required minlength="15"></textarea>
+					<small>Cuéntanos con calma lo que necesitas.</small>
 				</label>
 				<label class="check">
 					<input type="checkbox" name="acepto" required />
@@ -229,6 +230,11 @@ const asuntos = [
 		font-size: 13px;
 		font-weight: 700;
 	}
+	.field small {
+		font-size: 12px;
+		font-weight: 500;
+		opacity: 0.7;
+	}
 	.field input,
 	.field select,
 	.field textarea {
@@ -335,6 +341,7 @@ const asuntos = [
 <script>
 	import { actions } from 'astro:actions';
 	import { conBoton, leerError, renovarTurnstile } from '../scripts/envio';
+	import { evento } from '../scripts/analitica';
 
 	const form = document.getElementById('form-contacto') as HTMLFormElement | null;
 	const status = document.getElementById('contacto-status');
@@ -388,6 +395,7 @@ const asuntos = [
 			say(mensaje, 'error');
 			return;
 		}
+		evento('contacto_enviado', { asunto: asunto?.value ?? '' });
 		form.reset();
 		say('Recibimos tu mensaje. Te enviamos una confirmación a tu correo y te responderemos en días hábiles.', 'ok');
 	});

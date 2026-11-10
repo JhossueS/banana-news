@@ -39,4 +39,5 @@ export const paginasMedio = [
 export const paginasLegales = [
 	{ href: '/terminos-y-condiciones/', label: 'Términos y condiciones' },
 	{ href: '/aviso-legal/', label: 'Aviso legal' },
+	{ href: '/politica-de-cookies/', label: 'Política de cookies' },
 ] as const;

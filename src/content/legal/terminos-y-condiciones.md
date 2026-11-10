@@ -1,7 +1,7 @@
 ---
 titulo: Términos y condiciones
 bajada: Las reglas para usar Banana News, explicadas de forma clara.
-actualizado: 2026-11-09
+actualizado: 2026-11-10
 ---
 
 ## Aceptación
@@ -51,6 +51,8 @@ El sitio muestra publicidad, siempre identificada. No respondemos por los produc
 ## Datos personales
 
 Tratamos los datos que nos entregas (por ejemplo, en el formulario de contacto o de denuncias) solo para el fin con el que los enviaste, conforme a la Ley Orgánica de Protección de Datos Personales del Ecuador. Puedes ejercer tus derechos de acceso, rectificación, actualización, eliminación, oposición y portabilidad escribiendo a la dirección indicada en el [aviso legal](/aviso-legal/).
+
+Si lo aceptas, usamos Google Analytics para medir de forma agregada cómo se usa el sitio. Los detalles están en la [política de cookies](/politica-de-cookies/).
 
 ## Responsabilidad
 

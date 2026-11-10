@@ -1,6 +1,7 @@
 import { actions } from 'astro:actions';
 import type { MapNews } from '../lib/types';
 import { conBoton, leerError, renovarTurnstile } from './envio';
+import { evento } from './analitica';
 
 /** Puntos que el servidor embebe en la página (#map-data) y que se refrescan desde /api/publica/mapa */
 let mapNews: MapNews[] = (() => {
@@ -555,7 +556,7 @@ function initMap(root: HTMLElement) {
 		if (title.value.trim().length < 8) {
 			title.setAttribute('aria-invalid', 'true');
 			title.focus();
-			publishStatus.textContent = 'Escribe un titular de al menos 8 caracteres: verbo en presente y sujeto concreto.';
+			publishStatus.textContent = 'Escribe un titular de al menos 8 caracteres.';
 			publishStatus.dataset.kind = 'error';
 			return;
 		}
@@ -580,6 +581,7 @@ function initMap(root: HTMLElement) {
 			publishStatus.dataset.kind = 'error';
 			return;
 		}
+		evento('mapa_enviado', { seccion: (formEl.elements.namedItem('seccion') as HTMLSelectElement | null)?.value ?? '' });
 		formEl.reset();
 		publishStatus.innerHTML = 'Listo: tu noticia ya aparece en el <a href="/#mapa">mapa</a> como <b>sin verificar</b>. La redacción la revisará.';
 		publishStatus.dataset.kind = 'ok';

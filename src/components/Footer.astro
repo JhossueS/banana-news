@@ -1,5 +1,6 @@
 ---
 import Logo from './Logo.astro';
+import { GA_ID } from 'astro:env/client';
 import { paginasMedio, paginasLegales, redesActivas } from '../data/site';
 import { secciones } from '../lib/seo';
 
@@ -65,12 +66,27 @@ const cols = [
 					</ul>
 				)
 			}
+			{GA_ID && (
+				<button type="button" class="prefs" data-preferencias-cookies>
+					Preferencias de cookies
+				</button>
+			)}
 			<p class="copy">© 2026 Banana News</p>
 		</div>
 	</div>
 </footer>
 
 <style>
+	.prefs {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		font-size: 13px;
+		text-decoration: underline;
+		cursor: pointer;
+	}
 	.footer {
 		margin-top: 64px;
 		background: var(--bn-negro);

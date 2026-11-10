@@ -72,6 +72,9 @@ export default defineConfig({
 			TURNSTILE_SITE_KEY: envField.string({ context: 'client', access: 'public', default: '1x00000000000000000000AA' }),
 			TURNSTILE_SECRET: envField.string({ context: 'server', access: 'secret', default: '1x0000000000000000000000000000000AA' }),
 
+			/** ID de medición de Google Analytics 4 (G-…). Vacío = sin analítica ni aviso de cookies. Se fija en el BUILD */
+			GA_ID: envField.string({ context: 'client', access: 'public', optional: true }),
+
 			/* Correo (Resend). Sin clave, los correos se escriben en el log */
 			RESEND_API_KEY: secreto(),
 			CORREO_REMITENTE: runtime({ default: 'Banana News <no-responder@example.com>' }),
