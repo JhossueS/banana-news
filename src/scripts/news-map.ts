@@ -123,6 +123,11 @@ function initMap(root: HTMLElement) {
 	let raf = 0;
 	let drag: { x: number; y: number; vb: Box; w: number } | null = null;
 	let dragged = false;
+	// Dedos sobre el mapa (pellizco para zoom) y clic a ignorar tras un arrastre
+	const ptrs = new Map<number, { x: number; y: number }>();
+	let pinch: { d: number; w: number; mx: number; my: number } | null = null;
+	let noClickUntil = 0;
+	const movil = matchMedia('(max-width: 720px)');
 
 	let counts: Record<string, number> = {};
 	const recontar = () => {
@@ -183,7 +188,6 @@ function initMap(root: HTMLElement) {
 		animateTo([vb[0] + (vb[2] - w) / 2, vb[1] + (vb[3] - h) / 2, w, h]);
 	}
 	function openProv(c: string, keepSel = false) {
-		if (dragged) return;
 		const p = provByCode(c);
 		if (!p) return;
 		if (c === prov && !keepSel) return;
@@ -208,7 +212,7 @@ function initMap(root: HTMLElement) {
 		renderPanels();
 		animateTo([...FULL]);
 	}
-	function svgPoint(e: MouseEvent) {
+	function svgPoint(e: { clientX: number; clientY: number }) {
 		const pt = svg.createSVGPoint();
 		pt.x = e.clientX;
 		pt.y = e.clientY;
@@ -275,22 +279,36 @@ function initMap(root: HTMLElement) {
 		// Etiquetas de provincia / cantón
 		if (geo) {
 			const out: string[] = [];
-			const label = (x: number, y: number, text: string, basePx: number, fw: number, fill = INK) => {
+			const placed: Box[] = [];
+			const label = (x: number, y: number, text: string, basePx: number, fw: number, fill = INK, force = false) => {
 				const f = px(Math.max(basePx * (W / 780), 9));
+				// Caja aproximada del texto: si choca con una ya puesta, se omite
+				const bw = text.length * f * 0.6 + f * 0.4;
+				const bh = f * 1.25;
+				const b: Box = [x - bw / 2, y - bh / 2, bw, bh];
+				const hit = placed.some((o) => b[0] < o[0] + o[2] && o[0] < b[0] + b[2] && b[1] < o[1] + o[3] && o[1] < b[1] + b[3]);
+				if (hit && !force) return;
+				placed.push(b);
 				out.push(
 					`<text x="${x}" y="${y}" font-size="${f}" font-weight="${fw}" text-anchor="middle" dominant-baseline="middle" fill="${fill}" stroke="${HUESO}" stroke-width="${f * 0.3}" stroke-linejoin="round" paint-order="stroke" pointer-events="none">${esc(text)}</text>`,
 				);
 			};
 			if (!prov) {
-				for (const p of geo.provinces) {
+				const porArea = [...geo.provinces].sort((a, b) => b.b[2] * b.b[3] - a.b[2] * a.b[3]);
+				for (const p of porArea) {
 					// En pantallas angostas solo se rotulan las provincias que caben
 					const screenW = p.b[2] * ppu;
 					const f = Math.max(10.5 * (W / 780), 9);
 					if (screenW < p.s.length * f * 0.62 && p.c !== '20') continue;
-					label(p.l[0], p.l[1], p.s, 10.5, 700);
+					label(p.l[0], p.l[1], p.s, 10.5, 700, INK, p.c === '20');
 				}
 			} else {
-				for (const k of cantonsOf(prov)) label(k.l[0], k.l[1], k.n, k.c.slice(2) === '01' ? 12.5 : 11, k.c.slice(2) === '01' ? 800 : 600);
+				// La capital primero: nunca se omite
+				const cants = cantonsOf(prov).sort((a, b) => Number(b.c.slice(2) === '01') - Number(a.c.slice(2) === '01'));
+				for (const k of cants) {
+					const cap = k.c.slice(2) === '01';
+					label(k.l[0], k.l[1], k.n, cap ? 12.5 : 11, cap ? 800 : 600, INK, cap);
+				}
 				for (const p of geo.provinces) if (p.c !== prov) label(p.l[0], p.l[1], p.s.toUpperCase(), 10, 700, '#4B5058');
 			}
 			gLabels.innerHTML = out.join('');
@@ -306,7 +324,7 @@ function initMap(root: HTMLElement) {
 				const fill = on ? INK : pinColor(n);
 				const dot = on ? AMARILLO : INK;
 				const aria = `${n.city}: ${n.title} (${statusOf(n).label.toLowerCase()})`;
-				return `<g class="pin" data-id="${n.id}" transform="translate(${x} ${y}) scale(${k})" role="button" tabindex="0" aria-label="${esc(aria)}" aria-pressed="${on}"><title>${esc(aria)}</title><path d="M0 0C-5-7-9-11-9-16A9 9 0 1 1 9-16C9-11 5-7 0 0Z" fill="${fill}" stroke="${INK}" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="0" cy="-16" r="3.2" fill="${dot}"/></g>`;
+				return `<g class="pin" data-id="${n.id}" transform="translate(${x} ${y}) scale(${k})" role="button" tabindex="0" aria-label="${esc(aria)}" aria-pressed="${on}"><title>${esc(aria)}</title><circle cx="0" cy="-13" r="19" fill="transparent"/><path d="M0 0C-5-7-9-11-9-16A9 9 0 1 1 9-16C9-11 5-7 0 0Z" fill="${fill}" stroke="${INK}" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="0" cy="-16" r="3.2" fill="${dot}"/></g>`;
 			})
 			.join('');
 
@@ -428,6 +446,7 @@ function initMap(root: HTMLElement) {
 	function renderPanels() {
 		if (!geo) return;
 		const P = prov ? provByCode(prov) : null;
+		root.dataset.level = P ? 'prov' : 'pais';
 
 		crumb.innerHTML = P
 			? `<button type="button" data-act="country" class="crumb-back">${BACK}Ecuador</button><span class="crumb-name">${esc(P.n)}</span>`
@@ -436,10 +455,10 @@ function initMap(root: HTMLElement) {
 		hint.textContent =
 			mode === 'ver'
 				? P
-					? 'Toca un punto para ver la noticia · Arrastra para moverte'
+					? 'Toca un punto para ver la noticia · Arrastra o pellizca para moverte'
 					: 'Toca un punto o una provincia'
 				: P
-					? 'Toca el lugar exacto donde ocurrió · Arrastra para moverte'
+					? 'Toca el lugar exacto donde ocurrió · Arrastra o pellizca para moverte'
 					: 'Toca la provincia donde ocurrió';
 
 		renderExplore(P);
@@ -447,16 +466,53 @@ function initMap(root: HTMLElement) {
 		renderInfo();
 	}
 
+	/** Móvil: el detalle está bajo el mapa; si quedó fuera de la pantalla, acercarlo */
+	function mostrarDetalle() {
+		if (!detail || !movil.matches) return;
+		if (detail.getBoundingClientRect().top > innerHeight - 120) {
+			const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+			detail.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+		}
+	}
+
 	/* ── Interacción ── */
+	const startDrag = (x: number, y: number) => {
+		drag = { x, y, vb: [...vb] as Box, w: svg.getBoundingClientRect().width };
+	};
+	const startPinch = () => {
+		const [a, b] = [...ptrs.values()];
+		const mid = svgPoint({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 });
+		pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, w: vb[2], mx: mid.x, my: mid.y };
+		drag = null;
+		dragged = true;
+		cancelAnimationFrame(raf);
+	};
 	svg.addEventListener('pointerdown', (e) => {
-		drag = { x: e.clientX, y: e.clientY, vb: [...vb] as Box, w: svg.getBoundingClientRect().width };
-		dragged = false;
+		ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+		if (ptrs.size === 1) {
+			dragged = false;
+			startDrag(e.clientX, e.clientY);
+		} else if (ptrs.size === 2) startPinch();
 	});
 	svg.addEventListener('pointermove', (e) => {
+		if (!ptrs.has(e.pointerId)) return;
+		ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+		if (pinch && ptrs.size >= 2) {
+			// El punto del mapa bajo el centro del pellizco se queda bajo los dedos
+			const [a, b] = [...ptrs.values()];
+			const r = svg.getBoundingClientRect();
+			const w = pinch.w * (pinch.d / (Math.hypot(a.x - b.x, a.y - b.y) || 1));
+			const h = (w * FULL[3]) / FULL[2];
+			const rx = ((a.x + b.x) / 2 - r.left) / r.width;
+			const ry = ((a.y + b.y) / 2 - r.top) / r.height;
+			vb = clampVb([pinch.mx - rx * w, pinch.my - ry * h, w, h]);
+			renderView();
+			return;
+		}
 		if (!drag) return;
 		const dx = e.clientX - drag.x;
 		const dy = e.clientY - drag.y;
-		if (!dragged && Math.abs(dx) + Math.abs(dy) < 6) return;
+		if (!dragged && Math.abs(dx) + Math.abs(dy) < 8) return;
 		if (drag.vb[2] >= FULL[2] - 1) return;
 		dragged = true;
 		cancelAnimationFrame(raf);
@@ -464,15 +520,28 @@ function initMap(root: HTMLElement) {
 		vb = clampVb([drag.vb[0] - dx * k, drag.vb[1] - dy * k, drag.vb[2], drag.vb[3]]);
 		renderView();
 	});
-	const endDrag = () => {
-		drag = null;
-		if (dragged) setTimeout(() => (dragged = false), 0);
+	const endPointer = (e: PointerEvent) => {
+		if (!ptrs.delete(e.pointerId)) return;
+		if (ptrs.size === 1 && pinch) {
+			// Queda un dedo: sigue arrastrando desde donde está
+			pinch = null;
+			const [p] = [...ptrs.values()];
+			startDrag(p.x, p.y);
+			return;
+		}
+		if (ptrs.size === 0) {
+			pinch = null;
+			drag = null;
+			if (dragged) noClickUntil = performance.now() + 400;
+			dragged = false;
+		}
 	};
-	svg.addEventListener('pointerup', endDrag);
-	svg.addEventListener('pointerleave', endDrag);
+	svg.addEventListener('pointerup', endPointer);
+	svg.addEventListener('pointercancel', endPointer);
+	svg.addEventListener('pointerleave', (e) => e.pointerType === 'mouse' && endPointer(e));
 
 	svg.addEventListener('click', (e) => {
-		if (dragged) return;
+		if (performance.now() < noClickUntil) return;
 		const t = e.target as Element;
 		const pin = t.closest<SVGGElement>('.pin');
 		if (pin) {
@@ -484,6 +553,7 @@ function initMap(root: HTMLElement) {
 				renderView();
 				renderPanels();
 			}
+			mostrarDetalle();
 			return;
 		}
 		const cant = t.closest<SVGPathElement>('.cant');

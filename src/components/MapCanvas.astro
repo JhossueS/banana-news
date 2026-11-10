@@ -7,6 +7,7 @@
 import Icon from './Icon.astro';
 ---
 
+<div class="map-wrap">
 <div class="map-box">
 	<div class="crumb" id="map-crumb"></div>
 	<div class="zoom">
@@ -31,7 +32,8 @@ import Icon from './Icon.astro';
 		<g id="g-pins"></g>
 		<g id="g-custom"></g>
 	</svg>
-	<p class="hint" id="map-hint"></p>
+</div>
+<p class="hint" id="map-hint"></p>
 </div>
 
 <style is:global>
@@ -45,6 +47,9 @@ import Icon from './Icon.astro';
 	.nmap .map-col {
 		flex: 999 1 640px;
 		min-width: 0;
+	}
+	.nmap .map-wrap {
+		position: relative;
 	}
 	.nmap .map-box {
 		position: relative;
@@ -69,9 +74,12 @@ import Icon from './Icon.astro';
 	.nmap .cant {
 		cursor: crosshair;
 	}
-	.nmap .prov:hover,
-	.nmap .cant:hover {
-		fill: var(--bn-amarillo-300);
+	/* Solo con puntero real: en táctil el :hover se queda pegado tras tocar */
+	@media (hover: hover) {
+		.nmap .prov:hover,
+		.nmap .cant:hover {
+			fill: var(--bn-amarillo-300);
+		}
 	}
 	.nmap .prov:focus-visible,
 	.nmap .pin:focus-visible {
@@ -378,6 +386,36 @@ import Icon from './Icon.astro';
 		}
 		.nmap .side {
 			flex-basis: 100%;
+		}
+		/* En un mapa de ~320 px los controles flotantes tapaban provincias */
+		.nmap[data-level='pais'] .crumb {
+			display: none;
+		}
+		.nmap .crumb {
+			left: 8px;
+			top: 8px;
+			min-height: 36px;
+			font-size: 12px;
+		}
+		.nmap .crumb-back {
+			min-height: 36px;
+		}
+		.nmap .zoom {
+			top: auto;
+			right: 8px;
+			bottom: 8px;
+			flex-direction: row;
+		}
+		.nmap .zoom button + button {
+			box-shadow: inset 1px 0 0 var(--bn-gris-200);
+		}
+		.nmap .hint {
+			position: static;
+			width: auto;
+			max-width: none;
+			padding: 8px var(--gutter) 0;
+			background: none;
+			border-radius: 0;
 		}
 	}
 </style>
