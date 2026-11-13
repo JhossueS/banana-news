@@ -52,7 +52,7 @@ El sitio muestra publicidad, siempre identificada. No respondemos por los produc
 
 Tratamos los datos que nos entregas (por ejemplo, en el formulario de contacto o de denuncias) solo para el fin con el que los enviaste, conforme a la Ley Orgánica de Protección de Datos Personales del Ecuador. Puedes ejercer tus derechos de acceso, rectificación, actualización, eliminación, oposición y portabilidad escribiendo a la dirección indicada en el [aviso legal](/aviso-legal/).
 
-Si lo aceptas, usamos Google Analytics para medir de forma agregada cómo se usa el sitio. Los detalles están en la [política de cookies](/politica-de-cookies/).
+Si lo aceptas, usamos Google Analytics para medir de forma agregada cómo se usa el sitio y Google AdSense para mostrar anuncios. Los detalles están en la [política de cookies](/politica-de-cookies/).
 
 ## Responsabilidad
 
