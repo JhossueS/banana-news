@@ -116,11 +116,6 @@ export const server = {
 			});
 			await Promise.all([
 				purgar(rutas.portada()),
-				enviarCorreo({
-					para: CORREO_DESTINO ?? site.correos.redaccion,
-					asunto: `[Denuncia sin verificar] ${input.lugar}`,
-					texto: `${input.relato}\n\nLugar: ${input.lugar}\nAdjunto: ${adjuntoKey ? 'sí' : 'no'}`,
-				}),
 			]);
 			return { ok: true };
 		},
@@ -157,11 +152,6 @@ export const server = {
 			});
 			await Promise.all([
 				purgar(rutas.mapa()),
-				enviarCorreo({
-					para: CORREO_DESTINO ?? site.correos.redaccion,
-					asunto: `[Mapa sin verificar] ${input.titular}`,
-					texto: `${input.titular}\n${input.bajada ?? ''}\n\n${ciudad}, ${nombreProvincia(input.provincia)} (${input.lat}, ${input.lon})`,
-				}),
 			]);
 			return { ok: true };
 		},
