@@ -33,7 +33,7 @@ Hemos desactivado las señales de Google y la personalización de anuncios en An
 
 ## Cookies de publicidad (solo si las aceptas)
 
-Mostramos anuncios de **Google AdSense**, de Google LLC, para financiar el medio. Como la analítica, solo se cargan si pulsas **Aceptar** en el aviso; si rechazas, no se muestran anuncios de Google.
+Mostramos anuncios de **Google AdSense**, de Google LLC, para financiar el medio. El código de AdSense está en la página, pero no pide anuncios ni guarda sus cookies hasta que pulsas **Aceptar** en el aviso; si rechazas, no se muestran anuncios de Google.
 
 | Cookie | Para qué sirve | Duración |
 | --- | --- | --- |
