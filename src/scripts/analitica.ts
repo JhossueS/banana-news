@@ -1,11 +1,10 @@
 /**
  * Google Analytics 4 y AdSense con consentimiento previo.
- * - Nada de Google (ni analítica ni anuncios) se carga hasta que la persona pulsa «Aceptar».
+ * - Analytics no se carga y AdSense no pide anuncios hasta que la persona pulsa «Aceptar».
+ *   adsbygoogle.js sí va fijo en el <head> (AdSense lo exige para verificar el sitio), pero pausado.
  * - La decisión se guarda en este navegador (localStorage) y vence a los 6 meses.
  * - «No rastrear» / Global Privacy Control cuentan como rechazo mientras no haya una decisión.
  */
-import { ADSENSE_CLIENTE } from '../data/anuncios';
-
 type Valor = 'si' | 'no';
 interface Decision {
 	valor: Valor;
@@ -16,7 +15,8 @@ declare global {
 	interface Window {
 		dataLayer?: unknown[];
 		gtag?: (...args: unknown[]) => void;
-		adsbygoogle?: unknown[];
+		/** adsbygoogle.js va fijo en el <head> con las peticiones pausadas (Layout.astro) */
+		adsbygoogle?: unknown[] & { pauseAdRequests?: number };
 	}
 }
 
@@ -45,11 +45,10 @@ function guardar(valor: Valor) {
 const noRastrear = () =>
 	navigator.doNotTrack === '1' || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true;
 
-function script(src: string, crossOrigin?: string) {
+function script(src: string) {
 	const s = document.createElement('script');
 	s.async = true;
 	s.src = src;
-	if (crossOrigin) s.crossOrigin = crossOrigin;
 	document.head.appendChild(s);
 }
 
@@ -57,11 +56,11 @@ function script(src: string, crossOrigin?: string) {
 function activarAnuncios() {
 	document.documentElement.classList.add('anuncios-google');
 	const ads = (window.adsbygoogle = window.adsbygoogle || []);
+	ads.pauseAdRequests = 0;
 	// Solo los visibles: un bloque oculto (p. ej. el de móvil en escritorio) mide 0 y AdSense lo rechaza
 	document.querySelectorAll<HTMLElement>('ins.adsbygoogle:not([data-adsbygoogle-status])').forEach((ins) => {
 		if (ins.offsetWidth > 0) ads.push({});
 	});
-	script(`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENTE}`, 'anonymous');
 }
 
 let cargado = false;
