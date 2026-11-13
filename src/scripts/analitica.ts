@@ -1,9 +1,11 @@
 /**
- * Google Analytics 4 con consentimiento previo.
- * - Nada de Google se carga hasta que la persona pulsa «Aceptar».
+ * Google Analytics 4 y AdSense con consentimiento previo.
+ * - Nada de Google (ni analítica ni anuncios) se carga hasta que la persona pulsa «Aceptar».
  * - La decisión se guarda en este navegador (localStorage) y vence a los 6 meses.
  * - «No rastrear» / Global Privacy Control cuentan como rechazo mientras no haya una decisión.
  */
+import { ADSENSE_CLIENTE } from '../data/anuncios';
+
 type Valor = 'si' | 'no';
 interface Decision {
 	valor: Valor;
@@ -14,10 +16,12 @@ declare global {
 	interface Window {
 		dataLayer?: unknown[];
 		gtag?: (...args: unknown[]) => void;
+		adsbygoogle?: unknown[];
 	}
 }
 
 const CLAVE = 'bn-consent';
+
 const VIGENCIA = 182 * 24 * 3600 * 1000;
 
 function leer(): Decision | null {
@@ -41,10 +45,31 @@ function guardar(valor: Valor) {
 const noRastrear = () =>
 	navigator.doNotTrack === '1' || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true;
 
+function script(src: string, crossOrigin?: string) {
+	const s = document.createElement('script');
+	s.async = true;
+	s.src = src;
+	if (crossOrigin) s.crossOrigin = crossOrigin;
+	document.head.appendChild(s);
+}
+
+/** Muestra los bloques de AdSense de la página y los pide a Google */
+function activarAnuncios() {
+	document.documentElement.classList.add('anuncios-google');
+	const ads = (window.adsbygoogle = window.adsbygoogle || []);
+	// Solo los visibles: un bloque oculto (p. ej. el de móvil en escritorio) mide 0 y AdSense lo rechaza
+	document.querySelectorAll<HTMLElement>('ins.adsbygoogle:not([data-adsbygoogle-status])').forEach((ins) => {
+		if (ins.offsetWidth > 0) ads.push({});
+	});
+	script(`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENTE}`, 'anonymous');
+}
+
 let cargado = false;
-function cargar(id: string) {
+function cargar(id: string | undefined) {
 	if (cargado) return;
 	cargado = true;
+	activarAnuncios();
+	if (!id) return;
 	window.dataLayer = window.dataLayer || [];
 	window.gtag = function gtag() {
 		// gtag.js espera el objeto `arguments`, no un array
@@ -53,20 +78,20 @@ function cargar(id: string) {
 	};
 	window.gtag('js', new Date());
 	window.gtag('config', id, { allow_google_signals: false, allow_ad_personalization_signals: false });
-	const s = document.createElement('script');
-	s.async = true;
-	s.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
-	document.head.appendChild(s);
+	script(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`);
 }
 
-/** Borra las cookies _ga* en el dominio actual y en el dominio padre */
+/** Cookies propias de Analytics (_ga*) y AdSense (__gads, __gpi, __eoi) */
+const COOKIES_GOOGLE = ['_ga', '__gads', '__gpi', '__eoi'];
+
+/** Borra las cookies de Google en el dominio actual y en el dominio padre */
 function borrarCookies() {
 	const partes = location.hostname.split('.');
 	const dominios = ['', location.hostname, ...partes.map((_, i) => `.${partes.slice(i).join('.')}`).slice(0, -1)];
 	document.cookie
 		.split(';')
 		.map((c) => c.split('=')[0]!.trim())
-		.filter((n) => n.startsWith('_ga'))
+		.filter((n) => COOKIES_GOOGLE.some((p) => n.startsWith(p)))
 		.forEach((n) => dominios.forEach((d) => (document.cookie = `${n}=; Max-Age=0; path=/${d ? `; domain=${d}` : ''}`)));
 }
 
@@ -75,7 +100,8 @@ export function evento(nombre: string, params: Record<string, string | number> =
 	window.gtag?.('event', nombre, params);
 }
 
-export function iniciarConsentimiento(id: string) {
+/** `id` es el de GA4; sin él solo se gestionan los anuncios */
+export function iniciarConsentimiento(id?: string) {
 	const aviso = document.getElementById('consentimiento');
 	const raiz = document.documentElement;
 	const mostrar = () => {
@@ -95,7 +121,7 @@ export function iniciarConsentimiento(id: string) {
 		if (valor === 'si') cargar(id);
 		else if (antes === 'si' || cargado) {
 			borrarCookies();
-			// gtag.js ya está en memoria: recargar para que deje de medir
+			// gtag.js y adsbygoogle.js ya están en memoria: recargar para descargarlos
 			location.reload();
 		}
 	};

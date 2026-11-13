@@ -1,11 +1,11 @@
 ---
-/** Aviso de cookies de analítica. Oculto hasta que el script decide mostrarlo. */
+/** Aviso de cookies de analítica y publicidad. Oculto hasta que el script decide mostrarlo. */
 ---
 
 <div id="consentimiento" class="velo" hidden>
 	<section class="consent" role="dialog" aria-modal="true" aria-labelledby="consent-titulo">
 		<p id="consent-titulo" class="txt">
-			Usamos cookies de Google Analytics para saber qué notas se leen. ¿Las aceptas?
+			Usamos cookies de Google para saber qué notas se leen y para mostrar anuncios que sostienen el medio. ¿Las aceptas?
 			<a href="/politica-de-cookies/">Más información</a>
 		</p>
 		<div class="btns">
@@ -86,5 +86,5 @@
 	import { GA_ID } from 'astro:env/client';
 	import { iniciarConsentimiento } from '../scripts/analitica';
 
-	if (GA_ID) iniciarConsentimiento(GA_ID);
+	iniciarConsentimiento(GA_ID || undefined);
 </script>

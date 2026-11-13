@@ -1,16 +1,31 @@
 ---
-/** Espacio publicitario: la imagen sale por CmsImage (<picture> AVIF → WebP) a su medida real. */
+/**
+ * Espacio publicitario. Si el formato tiene bloque de AdSense, Google lo llena cuando la
+ * persona acepta las cookies (ver scripts/analitica.ts). Sin consentimiento, sin bloque o si
+ * Google no tiene anuncio que servir, se ve la imagen propia (CmsImage, AVIF → WebP).
+ */
 import CmsImage from './CmsImage.astro';
-import { anuncios, type FormatoAnuncio } from '../data/anuncios';
+import { ADSENSE_CLIENTE, anuncios, bloquesAdsense, type FormatoAnuncio } from '../data/anuncios';
 
 interface Props {
 	formato: FormatoAnuncio;
 }
 const { formato } = Astro.props;
 const image = anuncios[formato];
+const bloque = bloquesAdsense[formato];
 ---
 
 <div class="anuncio" style={`max-width: ${image.width}px`}>
+	{
+		bloque && (
+			<ins
+				class="adsbygoogle"
+				style={`width: ${image.width}px; height: ${image.height}px`}
+				data-ad-client={ADSENSE_CLIENTE}
+				data-ad-slot={bloque}
+			/>
+		)
+	}
 	<CmsImage {image} sizes={`${image.width}px`} class="anuncio-img" />
 </div>
 
@@ -23,5 +38,23 @@ const image = anuncios[formato];
 		display: block;
 		width: 100%;
 		height: auto;
+	}
+	/* El bloque de Google solo existe tras el consentimiento; entonces ocupa el lugar de la imagen */
+	.adsbygoogle {
+		display: none;
+		max-width: 100%;
+	}
+	:global(html.anuncios-google) .adsbygoogle {
+		display: block;
+	}
+	:global(html.anuncios-google) .anuncio:has(.adsbygoogle) :global(.anuncio-img) {
+		display: none;
+	}
+	/* Google no tuvo anuncio que servir: vuelve la imagen propia */
+	:global(html.anuncios-google) .adsbygoogle[data-ad-status='unfilled'] {
+		display: none;
+	}
+	:global(html.anuncios-google) .anuncio:has(.adsbygoogle[data-ad-status='unfilled']) :global(.anuncio-img) {
+		display: block;
 	}
 </style>

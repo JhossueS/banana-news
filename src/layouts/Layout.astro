@@ -1,7 +1,7 @@
 ---
 import '../styles/global.css';
-import { GA_ID } from 'astro:env/client';
 import Consentimiento from '../components/Consentimiento.astro';
+import { ADSENSE_CLIENTE } from '../data/anuncios';
 import { absoluta, jsonLd, LEMA, NOMBRE_SITIO, OG_DEFECTO, usuarioX } from '../lib/seo';
 
 interface Props {
@@ -36,8 +36,8 @@ const {
 } = Astro.props;
 
 const url = absoluta(canonical);
-/** El panel nunca carga analítica */
-const analitica = !!GA_ID && !Astro.url.pathname.startsWith('/admin');
+/** El panel nunca carga analítica ni anuncios */
+const consentimiento = !Astro.url.pathname.startsWith('/admin');
 const og = absoluta(image ?? OG_DEFECTO);
 const ogAncho = image ? imageWidth : 1200;
 const ogAlto = image ? imageHeight : 630;
@@ -53,6 +53,7 @@ const ogAlt = image ? imageAlt : `${NOMBRE_SITIO} · ${LEMA}`;
 		<link rel="apple-touch-icon" href="/logo-512.png" />
 		<meta name="theme-color" content="#171717" />
 		<meta name="generator" content={Astro.generator} />
+		<meta name="google-adsense-account" content={ADSENSE_CLIENTE} />
 		<title>{title}</title>
 		<meta name="description" content={description} />
 		<meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'} />
@@ -81,6 +82,6 @@ const ogAlt = image ? imageAlt : `${NOMBRE_SITIO} · ${LEMA}`;
 	<body>
 		<a class="skip-link" href="#contenido">Saltar al contenido</a>
 		<slot />
-		{analitica && <Consentimiento />}
+		{consentimiento && <Consentimiento />}
 	</body>
 </html>
