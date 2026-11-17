@@ -8,6 +8,13 @@
       "when": 1794226950578,
       "tag": "0000_puzzling_ted_forrester",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794931784538,
+      "tag": "0001_mascotas",
+      "breakpoints": true
     }
   ]
 }
