@@ -41,3 +41,6 @@ export const paginasLegales = [
 	{ href: '/aviso-legal/', label: 'Aviso legal' },
 	{ href: '/politica-de-cookies/', label: 'Política de cookies' },
 ] as const;
+
+/** Formulario para publicar la ficha de una mascota */
+export const publicarMascotaHref = '/adopcion/publicar/';
