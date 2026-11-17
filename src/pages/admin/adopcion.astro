@@ -1,0 +1,238 @@
+---
+import { desc, eq } from 'drizzle-orm';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { db, tablas } from '../../db/index';
+import { puede } from '../../lib/roles';
+import { medios } from '../../lib/medios';
+import { nombreProvincia, provincias } from '../../data/provincias';
+import { edadDesde, especies, etiquetaEspecie, fechaCorta, situaciones } from '../../lib/mascotas';
+
+export const prerender = false;
+if (!puede(Astro.locals.usuario?.rol, 'adopcion')) return Astro.redirect('/admin');
+
+const estados = ['pendiente', 'publicada', 'adoptada', 'rechazada'] as const;
+const etiqueta = { pendiente: 'Pendientes', publicada: 'Publicadas', adoptada: 'Adoptadas', rechazada: 'Rechazadas' };
+const pedido = Astro.url.searchParams.get('estado');
+const estado = (estados as readonly string[]).includes(pedido ?? '') ? (pedido as (typeof estados)[number]) : 'pendiente';
+
+const fichas = await db.select().from(tablas.mascotas).where(eq(tablas.mascotas.estado, estado)).orderBy(desc(tablas.mascotas.creado)).limit(200);
+const fmt = new Intl.DateTimeFormat('es-EC', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Guayaquil' });
+const foto = (k: string | null) => (k ? medios.urlImagen(k, 480) : null);
+---
+
+<AdminLayout title="Adopción" actual="adopcion">
+	<div class="a-toolbar">
+		{
+			estados.map((e) => (
+				<a class:list={['a-btn', 'a-btn--sm', e === estado ? '' : 'a-btn--ghost']} href={`/admin/adopcion?estado=${e}`}>
+					{etiqueta[e]}
+				</a>
+			))
+		}
+		<a class="a-btn a-btn--sm a-btn--amarillo a-push" href="/admin/adopcion/nueva">+ Nueva ficha</a>
+		<a class="a-btn a-btn--sm a-btn--ghost" href="/adopcion/" target="_blank" rel="noopener">Ver el sitio</a>
+	</div>
+
+	{
+		fichas.length ? (
+			<ul class="items">
+				{fichas.map((m) => (
+					<li class="a-card item" data-id={m.id}>
+						<div class="cabeza">
+							{foto(m.fotoKey) ? <img src={foto(m.fotoKey)!} alt={`Foto de ${m.nombre}`} width="160" height="120" loading="lazy" /> : <div class="sinfoto a-muted">Sin foto</div>}
+							<div class="datos">
+								<div class="item-head">
+									<span class="a-badge">{etiquetaEspecie(m.especie)}</span>
+									<span class="a-muted">{fmt.format(m.creado)}</span>
+								</div>
+								<h2>{m.nombre}</h2>
+								<p class="a-muted">
+									{m.sexo} · {fechaCorta(m.nacimiento)} ({edadDesde(m.nacimiento)}) · {m.ciudad}, {nombreProvincia(m.provincia)}
+								</p>
+								<p class="a-muted">
+									{m.situacion}
+									{m.peso && ` · ${m.peso}`}
+									{m.color && ` · ${m.color}`}
+									{m.chip && ` · Chip: ${m.chip}`}
+								</p>
+							</div>
+						</div>
+						<p class="texto">{m.descripcion}</p>
+						{m.condiciones && <p class="a-muted">Condiciones médicas: {m.condiciones}</p>}
+						<p class="a-muted">
+							Contacto: {m.contactoNombre} · <a href={`mailto:${m.contactoCorreo}`}>{m.contactoCorreo}</a>
+							{m.contactoTelefono && ` · ${m.contactoTelefono}`}
+						</p>
+						{m.motivoRechazo && <p class="a-muted">Motivo del rechazo: {m.motivoRechazo}</p>}
+
+						<div class="acciones">
+							{m.estado !== 'publicada' && <button class="a-btn a-btn--sm" data-accion="aprobar">{m.estado === 'pendiente' ? 'Aprobar y publicar' : 'Publicar de nuevo'}</button>}
+							{m.estado === 'publicada' && <button class="a-btn a-btn--sm" data-accion="adoptada">Marcar como adoptada</button>}
+							{m.estado !== 'rechazada' && <button class="a-btn a-btn--sm a-btn--ghost" data-accion="rechazar">Rechazar</button>}
+							{m.estado !== 'pendiente' && <button class="a-btn a-btn--sm a-btn--ghost" data-accion="reabrir">Volver a pendientes</button>}
+							{(m.estado === 'publicada' || m.estado === 'adoptada') && <a class="a-btn a-btn--sm a-btn--ghost" href={`/adopcion/${m.slug}/`} target="_blank" rel="noopener">Ver en el sitio</a>}
+							<button class="a-btn a-btn--sm a-btn--peligro" data-accion="borrar">Borrar</button>
+						</div>
+
+						<details class="editar">
+							<summary>Editar ficha</summary>
+							<form class="campos" data-form>
+								<label class="a-field"><span>Nombre</span><input name="nombre" value={m.nombre} required /></label>
+								<label class="a-field">
+									<span>Especie</span>
+									<select name="especie">{especies.map((e) => <option value={e.id} selected={e.id === m.especie}>{e.etiqueta}</option>)}</select>
+								</label>
+								<label class="a-field">
+									<span>Sexo</span>
+									<select name="sexo">{['Hembra', 'Macho'].map((x) => <option selected={x === m.sexo}>{x}</option>)}</select>
+								</label>
+								<label class="a-field"><span>Nacimiento</span><input type="date" name="nacimiento" value={m.nacimiento} required /></label>
+								<label class="a-field"><span>Ciudad</span><input name="ciudad" value={m.ciudad} required /></label>
+								<label class="a-field">
+									<span>Provincia</span>
+									<select name="provincia">{provincias.map(([c, n]) => <option value={c} selected={c === m.provincia}>{n}</option>)}</select>
+								</label>
+								<label class="a-field">
+									<span>Situación</span>
+									<select name="situacion">{situaciones.map((x) => <option selected={x === m.situacion}>{x}</option>)}</select>
+								</label>
+								<label class="a-field"><span>Peso</span><input name="peso" value={m.peso ?? ''} /></label>
+								<label class="a-field"><span>Color</span><input name="color" value={m.color ?? ''} /></label>
+								<label class="a-field">
+									<span>Chip</span>
+									<select name="chip">{['No sé', 'Sí', 'No'].map((x) => <option selected={x === (m.chip ?? 'No sé')}>{x}</option>)}</select>
+								</label>
+								<label class="a-field ancho"><span>Condiciones médicas</span><textarea name="condiciones" rows="2">{m.condiciones ?? ''}</textarea></label>
+								<label class="a-field ancho"><span>Descripción</span><textarea name="descripcion" rows="4" required>{m.descripcion}</textarea></label>
+								<label class="a-field"><span>Contacto: nombre</span><input name="contactoNombre" value={m.contactoNombre} required /></label>
+								<label class="a-field"><span>Contacto: correo</span><input type="email" name="contactoCorreo" value={m.contactoCorreo} required /></label>
+								<label class="a-field"><span>Contacto: teléfono</span><input name="contactoTelefono" value={m.contactoTelefono ?? ''} /></label>
+								<div class="ancho"><button type="submit" class="a-btn a-btn--sm a-btn--amarillo">Guardar cambios</button></div>
+							</form>
+						</details>
+						<p class="a-status" role="status" />
+					</li>
+				))}
+			</ul>
+		) : (
+			<p class="a-empty">No hay fichas en esta bandeja.</p>
+		)
+	}
+</AdminLayout>
+
+<style>
+	.items {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.item {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.item h2 {
+		margin: 0;
+		font-size: 18px;
+	}
+	.cabeza {
+		display: flex;
+		gap: 16px;
+		align-items: flex-start;
+		flex-wrap: wrap;
+	}
+	.cabeza img,
+	.sinfoto {
+		width: 160px;
+		height: 120px;
+		object-fit: cover;
+		background: var(--bn-gris-100);
+		flex: none;
+	}
+	.sinfoto {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.datos {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		min-width: 220px;
+		flex: 1;
+	}
+	.item-head {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+	}
+	.texto {
+		line-height: 1.5;
+		white-space: pre-line;
+	}
+	.acciones {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.editar summary {
+		cursor: pointer;
+		font-size: 14px;
+		font-weight: 700;
+	}
+	.campos {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: 10px;
+		margin-top: 10px;
+	}
+	.ancho {
+		grid-column: 1 / -1;
+	}
+	.item a {
+		color: inherit;
+	}
+</style>
+
+<script>
+	import { api, say } from '../../scripts/admin/api';
+	import { confirmar } from '../../scripts/admin/modal';
+
+	const enviar = async (li: HTMLElement, cuerpo: Record<string, unknown>) => {
+		const st = li.querySelector<HTMLElement>('.a-status');
+		say(st, 'Guardando…');
+		try {
+			await api('/api/admin/adopcion', 'POST', { id: li.dataset.id, ...cuerpo });
+			li.style.opacity = '0.45';
+			say(st, 'Hecho. El sitio se actualiza en segundos.', 'ok');
+			setTimeout(() => location.reload(), 700);
+		} catch (e) {
+			say(st, (e as Error).message, 'error');
+		}
+	};
+
+	document.addEventListener('click', async (e) => {
+		const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-accion]');
+		const li = b?.closest<HTMLElement>('[data-id]');
+		if (!b || !li) return;
+		const accion = b.dataset.accion!;
+		if (accion === 'borrar' && !(await confirmar({ titulo: 'Borrar la ficha', mensaje: 'Se borrará la ficha y su foto. No se puede deshacer.', aceptar: 'Borrar', peligro: true }))) return;
+		if (accion === 'rechazar') {
+			const motivo = prompt('Motivo del rechazo (se guarda en la ficha):');
+			if (!motivo) return;
+			return enviar(li, { accion, motivo });
+		}
+		enviar(li, { accion });
+	});
+
+	document.addEventListener('submit', (e) => {
+		const f = (e.target as HTMLElement).closest<HTMLFormElement>('[data-form]');
+		const li = f?.closest<HTMLElement>('[data-id]');
+		if (!f || !li) return;
+		e.preventDefault();
+		enviar(li, { accion: 'editar', ...Object.fromEntries(new FormData(f)) });
+	});
+</script>

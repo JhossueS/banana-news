@@ -1,0 +1,22 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import AdopcionListado from '../../components/AdopcionListado.astro';
+import { mascotasPublicadas } from '../../lib/adopcion';
+import { cachePublico } from '../../lib/cache';
+import { listadoSchema } from '../../lib/seo-adopcion';
+
+export const prerender = false;
+cachePublico(Astro.response.headers, 60);
+
+const mascotas = await mascotasPublicadas();
+const titulo = 'Adopción de mascotas en Ecuador: perros, gatos y aves · Banana News';
+const descripcion = 'Perros, gatos y aves que buscan hogar en Ecuador. Conoce su historia, su salud y contacta directo a quien los cuida antes de decidir.';
+---
+
+<Layout title={titulo} description={descripcion} schema={listadoSchema({ ruta: '/adopcion/', nombre: 'Adopción de mascotas en Ecuador', descripcion, mascotas })}>
+	<Header current="adopcion" />
+	<AdopcionListado {mascotas} h1={['Adopta una', 'mascota']} bajada="Perros, gatos y aves que buscan hogar en Ecuador. Conoce su historia antes de decidir." pagina="Adopción" />
+	<Footer />
+</Layout>

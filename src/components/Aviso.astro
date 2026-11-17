@@ -1,0 +1,76 @@
+---
+import Icon, { type IconName } from './Icon.astro';
+
+interface Props {
+	/** amarillo = situación · coral = alerta de salud · gris = neutro */
+	variante?: 'amarillo' | 'coral' | 'gris';
+	icono: IconName;
+	/** Rótulo en mayúsculas; sin él, el aviso es una sola línea */
+	rotulo?: string;
+	class?: string;
+}
+const { variante = 'amarillo', icono, rotulo, class: className } = Astro.props;
+---
+
+<div class:list={['aviso', `aviso--${variante}`, !rotulo && 'aviso--linea', className]}>
+	<Icon name={icono} size={18} />
+	<div class="cuerpo">
+		{rotulo && <span class="rotulo">{rotulo}</span>}
+		<span class="texto"><slot /></span>
+	</div>
+</div>
+
+<style>
+	.aviso {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		padding: 10px 12px;
+		border-radius: var(--radius-s);
+		color: var(--bn-negro);
+	}
+	.aviso--linea {
+		align-items: center;
+	}
+	.aviso--amarillo {
+		background: var(--bn-amarillo-100);
+	}
+	.aviso--coral {
+		background: var(--bn-coral-100);
+	}
+	.aviso--gris {
+		background: var(--bn-gris-100);
+	}
+	.aviso :global(svg) {
+		margin-top: 1px;
+	}
+	.aviso--linea :global(svg) {
+		margin-top: 0;
+	}
+	.cuerpo {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+	.rotulo {
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--bn-gris-600);
+	}
+	.aviso--coral .rotulo {
+		color: var(--bn-negro);
+	}
+	.texto {
+		font-size: 15px;
+		font-weight: 700;
+		line-height: 1.4;
+	}
+	.aviso--coral .texto,
+	.aviso--gris .texto {
+		font-size: 14px;
+		font-weight: 600;
+	}
+</style>

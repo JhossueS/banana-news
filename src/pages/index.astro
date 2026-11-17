@@ -9,17 +9,20 @@ import ReportSection from '../components/ReportSection.astro';
 import NewsMap from '../components/NewsMap.astro';
 import Icon from '../components/Icon.astro';
 import BananaBuscando from '../components/BananaBuscando.astro';
+import MascotaResumen from '../components/MascotaResumen.astro';
+import CtaBand from '../components/CtaBand.astro';
+import { mascotasPublicadas } from '../lib/adopcion';
 import { denunciasRecientes, listarNoticias, puntosMapa, ultimaHora } from '../lib/noticias';
 import { cachePublico } from '../lib/cache';
 import { absoluta, NOMBRE_SITIO, organizacion } from '../lib/seo';
-import { site } from '../data/site';
+import { publicarMascotaHref, site } from '../data/site';
 
 export const prerender = false;
 
 // La portada se genera en el servidor y el CDN la guarda 60 s (luego la renueva en segundo plano)
 cachePublico(Astro.response.headers, 60);
 
-const [notas, urgente, recientes, puntos] = await Promise.all([listarNoticias({ limit: 4 }), ultimaHora(), denunciasRecientes(3), puntosMapa()]);
+const [notas, urgente, recientes, puntos, mascotas] = await Promise.all([listarNoticias({ limit: 4 }), ultimaHora(), denunciasRecientes(3), puntosMapa(), mascotasPublicadas(1)]);
 const [principal, ...laterales] = notas;
 const kindBarra = urgente?.estado === 'en-vivo' ? 'en-vivo' : 'ultima-hora';
 
@@ -83,6 +86,21 @@ const schema = [
 
 		<NewsMap puntos={puntos} />
 
+		<section id="adopcion" class="adopcion" aria-labelledby="h-adopcion">
+			<div class="section-head">
+				<div class="section-title">
+					<h2 id="h-adopcion" class="h2">Adopción</h2>
+					<span class="underline" aria-hidden="true"></span>
+				</div>
+				<a href="/adopcion/" class="more">
+					Todas las mascotas
+					<Icon name="arrow-right" size={18} />
+				</a>
+			</div>
+			{mascotas[0] && <MascotaResumen mascota={mascotas[0]} />}
+			<CtaBand href={publicarMascotaHref} label="Publicar mascota">¿Rescatas o das en adopción? Publica su ficha.</CtaBand>
+		</section>
+
 		{
 			site.empleosUrl ? (
 				<section id="empleos" class="jobs" aria-labelledby="h-empleos">
@@ -116,6 +134,12 @@ const schema = [
 		flex-direction: column;
 		gap: 56px;
 		padding-top: 24px;
+	}
+
+	.adopcion {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
 	}
 
 	/* Noticias */

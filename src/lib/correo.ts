@@ -6,11 +6,12 @@ export interface Correo {
 	asunto: string;
 	texto: string;
 	responderA?: string;
+	adjuntos?: { nombre: string; contenido: Uint8Array }[];
 }
 
 export async function enviarCorreo(c: Correo): Promise<boolean> {
 	if (!RESEND_API_KEY) {
-		console.info(`[correo:simulado] para=${[c.para].flat().join(',')} asunto="${c.asunto}"\n${c.texto}`);
+		console.info(`[correo:simulado] para=${[c.para].flat().join(',')} asunto="${c.asunto}"${c.adjuntos?.length ? ` adjuntos=${c.adjuntos.map((a) => a.nombre).join(',')}` : ''}\n${c.texto}`);
 		return true;
 	}
 	try {
@@ -23,6 +24,7 @@ export async function enviarCorreo(c: Correo): Promise<boolean> {
 				subject: c.asunto,
 				text: c.texto,
 				...(c.responderA ? { reply_to: c.responderA } : {}),
+				...(c.adjuntos?.length ? { attachments: c.adjuntos.map((a) => ({ filename: a.nombre, content: Buffer.from(a.contenido).toString('base64') })) } : {}),
 			}),
 		});
 		if (!r.ok) console.error(`[correo] Resend respondió ${r.status}: ${await r.text()}`);

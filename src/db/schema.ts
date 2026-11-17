@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 import {
 	boolean,
+	date,
 	doublePrecision,
 	index,
 	integer,
@@ -23,6 +24,8 @@ export const publicacion = pgEnum('publicacion', ['borrador', 'publicada']);
 export const estadoAporte = pgEnum('estado_aporte', ['sin-verificar', 'verificado', 'rechazado']);
 export const tipoMedio = pgEnum('tipo_medio', ['imagen', 'video']);
 export const estadoMensaje = pgEnum('estado_mensaje', ['nuevo', 'respondido']);
+export const estadoMascota = pgEnum('estado_mascota', ['pendiente', 'publicada', 'rechazada', 'adoptada']);
+export const especieMascota = pgEnum('especie_mascota', ['canina', 'felina', 'aves']);
 
 const creado = () => timestamp('creado', { withTimezone: true }).notNull().defaultNow();
 const modificado = () =>
@@ -204,6 +207,57 @@ export const mensajes = pgTable(
 		creado: creado(),
 	},
 	(t) => [index('mensajes_estado_idx').on(t.estado, t.creado)],
+);
+
+/** Fichas de adopción: llegan como `pendiente` desde el formulario público y se publican desde el panel */
+export const mascotas = pgTable(
+	'mascotas',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		/** Para la URL de la ficha */
+		slug: text('slug').notNull(),
+
+		nombre: text('nombre').notNull(),
+		especie: especieMascota('especie').notNull(),
+		/** 'Hembra' | 'Macho' */
+		sexo: text('sexo').notNull(),
+		/** AAAA-MM-DD; la edad se calcula */
+		nacimiento: date('nacimiento', { mode: 'string' }).notNull(),
+		peso: text('peso'),
+		color: text('color'),
+		/** 'Sí' | 'No' | 'No sé' */
+		chip: text('chip'),
+		/** null = sin condiciones conocidas */
+		condiciones: text('condiciones'),
+		descripcion: text('descripcion').notNull(),
+		situacion: text('situacion').notNull(),
+
+		ciudad: text('ciudad').notNull(),
+		/** Código INEC, como en reportes_mapa */
+		provincia: text('provincia').notNull(),
+
+		/** Clave de la foto en el almacenamiento de medios (medios/mascotas/…) */
+		fotoKey: text('foto_key'),
+
+		contactoNombre: text('contacto_nombre').notNull(),
+		contactoCorreo: text('contacto_correo').notNull(),
+		contactoTelefono: text('contacto_telefono'),
+		autorizaPublicar: boolean('autoriza_publicar').notNull().default(false),
+
+		estado: estadoMascota('estado').notNull().default('pendiente'),
+		motivoRechazo: text('motivo_rechazo'),
+		revisadoPor: text('revisado_por').references(() => user.id, { onDelete: 'set null' }),
+		revisadoEn: timestamp('revisado_en', { withTimezone: true }),
+		publicadoEn: timestamp('publicado_en', { withTimezone: true }),
+
+		ipHash: text('ip_hash'),
+		creado: creado(),
+	},
+	(t) => [
+		uniqueIndex('mascotas_slug_idx').on(t.slug),
+		index('mascotas_estado_idx').on(t.estado, t.creado),
+		index('mascotas_listado_idx').on(t.estado, t.especie, t.publicadoEn),
+	],
 );
 
 /** Ventanas de rate limit por acción e IP (hash) */

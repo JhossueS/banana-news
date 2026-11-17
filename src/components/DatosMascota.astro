@@ -1,0 +1,57 @@
+---
+interface Props {
+	datos: { etiqueta: string; valor: string; nota?: string }[];
+	class?: string;
+}
+const { datos, class: className } = Astro.props;
+---
+
+<dl class:list={['datos', className]}>
+	{
+		datos.map((d) => (
+			<div class="dato">
+				<dt>{d.etiqueta}</dt>
+				<dd>
+					{d.valor}
+					{d.nota && <small>{d.nota}</small>}
+				</dd>
+			</div>
+		))
+	}
+</dl>
+
+<style>
+	.datos {
+		margin: 0;
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		column-gap: 12px;
+		box-shadow: inset 0 -1px 0 var(--line-soft);
+	}
+	.dato {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		min-width: 0;
+		padding: 10px 0;
+	}
+	dt {
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--bn-gris-600);
+	}
+	dd small {
+		display: block;
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+	}
+	dd {
+		margin: 0;
+		font-size: 15px;
+		font-weight: 700;
+		overflow-wrap: anywhere;
+	}
+</style>

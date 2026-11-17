@@ -31,6 +31,8 @@ export const rutas = {
 	],
 	mapa: () => ['/', '/api/publica/mapa'],
 	portada: () => ['/'],
+	/** Home, listados (general y por especie), sitemap y, si se conoce, la ficha */
+	adopcion: (slug?: string) => ['/', '/adopcion/', '/adopcion/perros/', '/adopcion/gatos/', '/adopcion/aves/', '/sitemap.xml', ...(slug ? [`/adopcion/${slug}/`] : [])],
 };
 
 /** Purga URLs en Cloudflare. Sin credenciales (desarrollo) no hace nada. Nunca lanza. */

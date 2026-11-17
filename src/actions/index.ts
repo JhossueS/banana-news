@@ -4,7 +4,7 @@
  */
 import { ActionError, defineAction, type ActionAPIContext } from 'astro:actions';
 import { z } from 'astro/zod';
-import { CORREO_DESTINO } from 'astro:env/server';
+import { CORREO_DESTINO, SITE_URL } from 'astro:env/server';
 import { randomUUID } from 'node:crypto';
 import { db, tablas } from '../db/index.ts';
 import { site } from '../data/site.ts';
@@ -13,6 +13,8 @@ import { enviarCorreo } from '../lib/correo.ts';
 import { medios } from '../lib/medios.ts';
 import { detectarTipo, PREFIJO_PRIVADO } from '../lib/nucleo/medios.ts';
 import { purgar, rutas } from '../lib/cache.ts';
+import { FotoInvalida, guardarFotoMascota } from '../lib/adopcion.ts';
+import { slugMascota, situaciones, especies as especiesMascota, etiquetaEspecie, edadDesde, fechaCorta } from '../lib/mascotas.ts';
 import { dentroDelLimite, hashIp, ipDe, verificarTurnstile } from '../lib/seguridad.ts';
 
 const MAX_ADJUNTO = 50 * 1024 * 1024;
@@ -152,6 +154,119 @@ export const server = {
 			});
 			await Promise.all([
 				purgar(rutas.mapa()),
+			]);
+			return { ok: true };
+		},
+	}),
+
+	/** Ficha de adopción: se guarda como `pendiente` y avisa a la redacción; se publica desde el panel. */
+	publicarMascota: defineAction({
+		accept: 'form',
+		input: z.object({
+			nombre: z.string().trim().min(2, 'Escribe el nombre de la mascota.').max(60),
+			especie: z.enum(especiesMascota.map((e) => e.id) as [string, ...string[]], 'Elige la especie.'),
+			sexo: z.enum(['Hembra', 'Macho'], 'Indica el sexo.'),
+			nacimiento: z
+				.string()
+				.regex(/^\d{4}-\d{2}-\d{2}$/, 'Indica la fecha de nacimiento (aproximada si no la sabes).')
+				.refine((f) => !Number.isNaN(Date.parse(f)) && f <= new Date().toISOString().slice(0, 10) && f >= '1990-01-01', 'La fecha de nacimiento no es válida.'),
+			ciudad: z.string().trim().min(2, 'Indica la ciudad donde se encuentra.').max(120),
+			provincia: z.string().refine((c) => codigosProvincia.includes(c), 'Elige una provincia de Ecuador.'),
+			situacion: z.enum(situaciones, 'Indica su situación actual.'),
+			peso: z.string().trim().max(40).optional(),
+			color: z.string().trim().max(80).optional(),
+			chip: z.enum(['Sí', 'No', 'No sé']).optional(),
+			condiciones: z.string().trim().max(500).optional(),
+			descripcion: z.string().trim().min(30, 'Cuéntanos más sobre su carácter: al menos una o dos frases.').max(1500),
+			contactoNombre: z.string().trim().min(2, 'Escribe tu nombre o el de tu organización.').max(120),
+			contactoCorreo: z.email('Escribe un correo válido para que te escriban los interesados.').max(200),
+			contactoTelefono: z
+				.string()
+				.trim()
+				.max(30)
+				.regex(/^[\d+()\s-]*$/, 'El teléfono solo puede llevar números, espacios, + y guiones.')
+				.optional(),
+			foto: z
+				.instanceof(File, { message: 'Sube una foto de la mascota.' })
+				.refine((f) => f.size > 0, 'Sube una foto de la mascota.')
+				.refine((f) => f.size <= 8 * 1024 * 1024, 'La foto pesa más de 8 MB.'),
+			acepto: z.boolean().refine((v) => v, 'Necesitamos tu autorización para publicar estos datos.'),
+			...antispam,
+		}),
+		handler: async (input, ctx) => {
+			const ipHash = await filtrar(ctx, 'mascota', input);
+			const id = randomUUID();
+			let fotoKey: string;
+			try {
+				fotoKey = await guardarFotoMascota(input.foto, id);
+			} catch (e) {
+				if (e instanceof FotoInvalida) throw new ActionError({ code: 'BAD_REQUEST', message: e.message });
+				throw e;
+			}
+			try {
+				await db.insert(tablas.mascotas).values({
+					id,
+					slug: slugMascota(input.nombre, id),
+					nombre: input.nombre,
+					especie: input.especie as 'canina' | 'felina' | 'aves',
+					sexo: input.sexo,
+					nacimiento: input.nacimiento,
+					peso: input.peso || null,
+					color: input.color || null,
+					chip: input.chip ?? null,
+					condiciones: input.condiciones || null,
+					descripcion: input.descripcion,
+					situacion: input.situacion,
+					ciudad: input.ciudad,
+					provincia: input.provincia,
+					fotoKey,
+					contactoNombre: input.contactoNombre,
+					contactoCorreo: input.contactoCorreo,
+					contactoTelefono: input.contactoTelefono || null,
+					autorizaPublicar: true,
+					ipHash,
+				});
+			} catch (e) {
+				await medios.borrar(fotoKey).catch(() => {});
+				throw e;
+			}
+			const una = (t: string) => t.replace(/[\r\n]+/g, ' ');
+			const texto = [
+				`Nueva ficha de adopción pendiente de revisión`,
+				``,
+				`MASCOTA`,
+				`Nombre: ${una(input.nombre)}`,
+				`Especie: ${etiquetaEspecie(input.especie as never)}`,
+				`Sexo: ${input.sexo}`,
+				`Nacimiento: ${fechaCorta(input.nacimiento)} (${edadDesde(input.nacimiento)})`,
+				`Ubicación: ${una(input.ciudad)}, ${nombreProvincia(input.provincia)}`,
+				`Situación actual: ${input.situacion}`,
+				`Peso: ${una(input.peso || '—')}`,
+				`Color: ${una(input.color || '—')}`,
+				`Chip: ${input.chip ?? '—'}`,
+				`Condiciones médicas: ${una(input.condiciones || 'Ninguna conocida')}`,
+				``,
+				`DESCRIPCIÓN`,
+				input.descripcion,
+				``,
+				`CONTACTO PARA LA ADOPCIÓN (se publicará en la ficha con su autorización)`,
+				`Nombre: ${una(input.contactoNombre)}`,
+				`Correo: ${input.contactoCorreo}`,
+				`Teléfono: ${una(input.contactoTelefono || '—')}`,
+			].join('\n');
+			await Promise.all([
+				enviarCorreo({
+					para: buzon('redaccion'),
+					asunto: `[Adopción] ${una(input.nombre)} · ${etiquetaEspecie(input.especie as never)}`,
+					texto: texto + `\n\nRevisar en el panel: ${new URL('/admin/adopcion', SITE_URL).href}`,
+					responderA: input.contactoCorreo,
+				}),
+				enviarCorreo({
+					para: input.contactoCorreo,
+					asunto: 'Recibimos la ficha de tu mascota · Banana News',
+					// Sin datos del formulario: así nadie puede usar este aviso para mandar texto propio a terceros
+					texto: 'Hola:\n\nRecibimos la ficha de la mascota. La revisaremos y te escribiremos antes de publicarla. Si no enviaste este formulario, ignora este correo.\n\n— Banana News',
+				}),
 			]);
 			return { ok: true };
 		},

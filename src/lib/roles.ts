@@ -5,6 +5,7 @@ export const permisos = {
 	notas: ['admin', 'editor'],
 	medios: ['admin', 'editor'],
 	moderacion: ['admin', 'moderador', 'editor'],
+	adopcion: ['admin', 'moderador', 'editor'],
 	mensajes: ['admin', 'editor'],
 	usuarios: ['admin'],
 } as const satisfies Record<string, readonly Rol[]>;

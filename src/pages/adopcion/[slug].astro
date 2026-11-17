@@ -1,0 +1,270 @@
+---
+/**
+ * /adopcion/perros/, /gatos/, /aves/ → listado de la especie.
+ * Cualquier otro slug → ficha de una mascota (publicada, o adoptada sin indexar). Otro caso: 404.
+ */
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import AdopcionListado from '../../components/AdopcionListado.astro';
+import MascotaCard from '../../components/MascotaCard.astro';
+import Aviso from '../../components/Aviso.astro';
+import DatosMascota from '../../components/DatosMascota.astro';
+import ContactoAdopcion from '../../components/ContactoAdopcion.astro';
+import Icon from '../../components/Icon.astro';
+import Tag from '../../components/Tag.astro';
+import { mascotaPorSlug, mascotasPublicadas, mascotasRelacionadas } from '../../lib/adopcion';
+import { cachePublico } from '../../lib/cache';
+import { edadDesde, especiePorSlug, etiquetaEspecie, fechaCorta } from '../../lib/mascotas';
+import { descripcionFicha, fichaSchema, listadoSchema, tituloFicha } from '../../lib/seo-adopcion';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const especie = especiePorSlug(slug ?? '');
+
+cachePublico(Astro.response.headers, 60);
+
+const mascotas = especie ? await mascotasPublicadas(60, especie.id) : [];
+const hallada = especie ? null : await mascotaPorSlug(slug ?? '');
+if (!especie && !hallada) {
+	Astro.response.status = 404;
+	Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=30');
+	Astro.response.headers.set('CDN-Cache-Control', 'public, s-maxage=30');
+}
+const m = hallada?.mascota;
+const relacionadas = m && !hallada!.adoptada ? await mascotasRelacionadas(m.especie, m.id) : [];
+const datos = m
+	? [
+			{ etiqueta: 'Sexo', valor: m.sexo },
+			{ etiqueta: 'Nacimiento', valor: fechaCorta(m.nacimiento), nota: edadDesde(m.nacimiento) },
+			{ etiqueta: 'Especie', valor: etiquetaEspecie(m.especie) },
+			{ etiqueta: 'Peso', valor: m.peso || '—' },
+			{ etiqueta: 'Color', valor: m.color || '—' },
+			{ etiqueta: 'Chip', valor: m.chip || '—' },
+		]
+	: [];
+---
+
+{
+	especie ? (
+		<Layout
+			title={`${especie.titulo} en Ecuador · Banana News`}
+			description={especie.descripcion}
+			schema={listadoSchema({ ruta: `/adopcion/${especie.slug}/`, nombre: `${especie.titulo} en Ecuador`, descripcion: especie.descripcion, mascotas })}
+		>
+			<Header current="adopcion" />
+			<AdopcionListado {mascotas} especie={especie.id} h1={especie.h1} bajada={especie.bajada} pagina={especie.titulo} />
+			<Footer />
+		</Layout>
+	) : m ? (
+		<Layout
+			title={tituloFicha(m)}
+			description={descripcionFicha(m)}
+			type="website"
+			image={m.foto?.src}
+			imageAlt={m.foto?.alt}
+			noindex={hallada!.adoptada}
+			schema={fichaSchema(m)}
+		>
+			<Header current="adopcion" />
+			<main id="contenido" class="wrap main">
+				<Crumbs items={[{ label: 'Adopción', href: '/adopcion/' }, { label: m.nombre }]} />
+				<article class="ficha" aria-labelledby="h-mascota">
+					<div class="foto">
+						{m.foto ? (
+							<img src={m.foto.src} alt={m.foto.alt} fetchpriority="high" decoding="async" />
+						) : (
+							<div class="vacio">
+								<Icon name="camera" size={32} />
+								<span>Sin foto todavía</span>
+							</div>
+						)}
+						<Tag variant={hallada!.adoptada ? 'negro' : 'amarillo'} size="md" class="estado">
+							{hallada!.adoptada ? 'Ya fue adoptada' : 'En adopción'}
+						</Tag>
+					</div>
+					<div class="info">
+						<header class="titulo">
+							<h1 id="h-mascota">{m.nombre}</h1>
+							<span class="ciudad">
+								<Icon name="map-pin" size={18} />
+								{m.ciudad}, {m.provincia}
+							</span>
+						</header>
+						<Aviso variante="amarillo" icono="info" rotulo="Situación actual">
+							{m.situacion}
+						</Aviso>
+						<DatosMascota {datos} />
+						{m.condicionMedica ? (
+							<Aviso variante="coral" icono="triangle-alert" rotulo="Condiciones médicas">
+								{m.condicionMedica}
+							</Aviso>
+						) : (
+							<Aviso variante="gris" icono="shield-check">
+								Sin condiciones médicas conocidas
+							</Aviso>
+						)}
+						<section aria-labelledby="h-historia" class="historia">
+							<h2 id="h-historia">Conoce a {m.nombre}</h2>
+							<p>{m.descripcion}</p>
+						</section>
+						{hallada!.adoptada ? (
+							<Aviso variante="gris" icono="check">
+								{m.nombre} ya encontró hogar. <a href={`/adopcion/${especiePorSlug(m.especie === 'canina' ? 'perros' : m.especie === 'felina' ? 'gatos' : 'aves')!.slug}/`}>Mira otras mascotas</a>.
+							</Aviso>
+						) : (
+							<ContactoAdopcion nombreMascota={m.nombre} contacto={m.contacto} />
+						)}
+					</div>
+				</article>
+
+				{relacionadas.length > 0 && (
+					<section aria-labelledby="h-mas" class="mas">
+						<h2 id="h-mas">Otras mascotas que buscan hogar</h2>
+						<div class="grilla">{relacionadas.map((r) => <MascotaCard mascota={r} />)}</div>
+					</section>
+				)}
+			</main>
+			<Footer />
+		</Layout>
+	) : (
+		<Layout title="No encontramos esa mascota · Banana News" description="Esta ficha no existe o ya no está disponible." noindex>
+			<Header current="adopcion" />
+			<main id="contenido" class="wrap main vacio-pagina">
+				<h1>No encontramos esa mascota</h1>
+				<p>La ficha ya no está disponible. Mira las mascotas que buscan hogar ahora.</p>
+				<a class="cta" href="/adopcion/">
+					Ver mascotas en adopción
+					<Icon name="arrow-right" size={18} />
+				</a>
+			</main>
+			<Footer />
+		</Layout>
+	)
+}
+
+<style>
+	.main {
+		display: flex;
+		flex-direction: column;
+		gap: 32px;
+		padding-top: 20px;
+		padding-bottom: 56px;
+	}
+	.ficha {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 24px;
+	}
+	.foto {
+		position: relative;
+		aspect-ratio: 4 / 3;
+		background: var(--bn-gris-100);
+		align-self: start;
+	}
+	.foto img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.vacio {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		font-weight: 700;
+		color: var(--bn-gris-600);
+	}
+	.foto :global(.estado) {
+		position: absolute;
+		left: 16px;
+		bottom: 0;
+		border-radius: 0;
+	}
+	.info {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		min-width: 0;
+	}
+	.titulo {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	h1 {
+		font-size: clamp(36px, 5.6vw, 56px);
+		font-weight: 800;
+		line-height: 1.02;
+		letter-spacing: -0.025em;
+	}
+	.ciudad {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 16px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+	}
+	.historia {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.historia h2,
+	.mas h2 {
+		font-size: clamp(22px, 2.6vw, 28px);
+		font-weight: 800;
+		line-height: 1.1;
+		letter-spacing: -0.015em;
+	}
+	.historia p {
+		max-width: 60ch;
+		padding-left: 14px;
+		font-size: 17px;
+		line-height: 1.55;
+		box-shadow: inset 6px 0 0 var(--bn-amarillo);
+	}
+	.mas {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+	.grilla {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+		gap: 16px;
+		align-items: start;
+	}
+	.vacio-pagina {
+		align-items: flex-start;
+		gap: 16px;
+		padding-block: 48px;
+	}
+	.cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 48px;
+		padding: 0 20px;
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+		font-weight: 800;
+		text-decoration: none;
+		border-radius: var(--radius-s);
+	}
+	@media (min-width: 900px) {
+		.ficha {
+			grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+			gap: 40px;
+		}
+		.foto {
+			position: sticky;
+			top: 16px;
+		}
+	}
+</style>
