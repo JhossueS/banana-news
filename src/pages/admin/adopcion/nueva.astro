@@ -1,0 +1,182 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { puede } from '../../../lib/roles';
+import { provincias } from '../../../data/provincias';
+import { especies, situaciones } from '../../../lib/mascotas';
+
+export const prerender = false;
+if (!puede(Astro.locals.usuario?.rol, 'adopcion')) return Astro.redirect('/admin');
+
+const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Guayaquil' }).format(new Date());
+---
+
+<AdminLayout title="Nueva ficha de adopción" actual="adopcion">
+	<div class="a-toolbar">
+		<a class="a-btn a-btn--sm a-btn--ghost" href="/admin/adopcion">← Volver a adopción</a>
+	</div>
+
+	<form class="a-card form" id="form-nueva" novalidate>
+		<h2>La mascota</h2>
+		<div class="campos">
+			<label class="a-field"><span>Nombre</span><input name="nombre" required maxlength="60" /></label>
+			<label class="a-field">
+				<span>Especie</span>
+				<select name="especie" required>
+					<option value="" disabled selected>Elige una</option>
+					{especies.map((e) => <option value={e.id}>{e.etiqueta}</option>)}
+				</select>
+			</label>
+			<label class="a-field">
+				<span>Sexo</span>
+				<select name="sexo" required>
+					<option value="" disabled selected>Elige uno</option>
+					<option>Hembra</option>
+					<option>Macho</option>
+				</select>
+			</label>
+			<label class="a-field">
+				<span>Fecha de nacimiento</span>
+				<input type="date" name="nacimiento" required min="1990-01-01" max={hoy} />
+				<small>Aproximada si no se conoce.</small>
+			</label>
+			<label class="a-field"><span>Ciudad</span><input name="ciudad" required maxlength="120" /></label>
+			<label class="a-field">
+				<span>Provincia</span>
+				<select name="provincia" required>
+					<option value="" disabled selected>Elige una</option>
+					{provincias.map(([c, n]) => <option value={c}>{n}</option>)}
+				</select>
+			</label>
+			<label class="a-field">
+				<span>Situación actual</span>
+				<select name="situacion" required>
+					<option value="" disabled selected>Elige una</option>
+					{situaciones.map((s) => <option>{s}</option>)}
+				</select>
+			</label>
+			<label class="a-field"><span>Peso (opcional)</span><input name="peso" maxlength="40" placeholder="18 kg" /></label>
+			<label class="a-field"><span>Color (opcional)</span><input name="color" maxlength="80" /></label>
+			<label class="a-field">
+				<span>Microchip</span>
+				<select name="chip"><option>No sé</option><option>Sí</option><option>No</option></select>
+			</label>
+			<label class="a-field ancho"><span>Condiciones médicas (opcional)</span><textarea name="condiciones" rows="2" maxlength="500"></textarea></label>
+			<label class="a-field ancho"><span>Descripción</span><textarea name="descripcion" rows="4" required minlength="30" maxlength="1500"></textarea></label>
+			<div class="a-field ancho">
+				<label for="foto"><span>Foto (opcional)</span></label>
+				<input type="file" id="foto" name="foto" accept="image/jpeg,image/png,image/webp" />
+				<small>JPG, PNG o WebP, hasta 8 MB.</small>
+				<img id="vista" class="vista" alt="Vista previa de la foto elegida" hidden />
+			</div>
+		</div>
+
+		<h2>Contacto para la adopción</h2>
+		<div class="campos">
+			<label class="a-field"><span>Nombre o refugio</span><input name="contactoNombre" required maxlength="120" /></label>
+			<label class="a-field"><span>Correo</span><input type="email" name="contactoCorreo" required /></label>
+			<label class="a-field"><span>Teléfono (opcional)</span><input type="tel" name="contactoTelefono" maxlength="30" /></label>
+		</div>
+
+		<label class="a-check">
+			<input type="checkbox" name="publicar" checked />
+			<span>Publicar ahora (si no, queda en pendientes)</span>
+		</label>
+		<div class="acciones">
+			<button type="submit" class="a-btn a-btn--amarillo">Guardar ficha</button>
+		</div>
+		<p class="a-status" id="estado" role="status"></p>
+	</form>
+</AdminLayout>
+
+<style>
+	.form {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		max-width: 900px;
+	}
+	.campos {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 12px;
+	}
+	.ancho {
+		grid-column: 1 / -1;
+	}
+	.vista {
+		width: 100%;
+		max-width: 240px;
+		aspect-ratio: 4 / 3;
+		object-fit: cover;
+		margin-top: 6px;
+	}
+	.vista[hidden] {
+		display: none;
+	}
+</style>
+
+<script>
+	import { say } from '../../../scripts/admin/api';
+
+	const form = document.getElementById('form-nueva') as HTMLFormElement;
+	const estado = document.getElementById('estado');
+	const foto = document.getElementById('foto') as HTMLInputElement;
+	const vista = document.getElementById('vista') as HTMLImageElement;
+	let url = '';
+
+	foto.addEventListener('change', () => {
+		if (url) URL.revokeObjectURL(url);
+		const f = foto.files?.[0];
+		if (!f) {
+			vista.hidden = true;
+			return;
+		}
+		if (f.size > 8 * 1024 * 1024) {
+			foto.value = '';
+			vista.hidden = true;
+			say(estado, 'La foto pesa más de 8 MB.', 'error');
+			return;
+		}
+		url = URL.createObjectURL(f);
+		vista.src = url;
+		vista.hidden = false;
+	});
+
+	form.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		form.querySelectorAll('[aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
+		const malo = Array.from(form.querySelectorAll<HTMLInputElement>('[required]')).find((f) => !f.checkValidity());
+		if (malo) {
+			malo.setAttribute('aria-invalid', 'true');
+			malo.focus();
+			say(estado, 'Revisa los campos marcados.', 'error');
+			return;
+		}
+		const btn = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+		btn.disabled = true;
+		say(estado, 'Guardando…');
+		try {
+			const r = await fetch('/api/admin/adopcion/nueva', { method: 'POST', body: new FormData(form) });
+			if (r.status === 401) {
+				location.href = `/admin/login?volver=${encodeURIComponent(location.pathname)}`;
+				return;
+			}
+			const j = (await r.json().catch(() => ({}))) as { error?: string; campo?: string; estado?: string };
+			if (!r.ok) {
+				const campo = j.campo ? form.elements.namedItem(j.campo) : null;
+				if (campo instanceof HTMLElement) {
+					campo.setAttribute('aria-invalid', 'true');
+					campo.focus();
+				}
+				say(estado, j.error ?? 'No pudimos guardar la ficha.', 'error');
+				return;
+			}
+			say(estado, 'Ficha guardada.', 'ok');
+			setTimeout(() => (location.href = `/admin/adopcion?estado=${j.estado ?? 'pendiente'}`), 600);
+		} catch {
+			say(estado, 'Sin conexión. Inténtalo de nuevo.', 'error');
+		} finally {
+			btn.disabled = false;
+		}
+	});
+</script>

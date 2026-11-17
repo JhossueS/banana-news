@@ -1,0 +1,405 @@
+---
+import PageLayout from '../../../layouts/PageLayout.astro';
+import Icon from '../../../components/Icon.astro';
+import Turnstile from '../../../components/Turnstile.astro';
+import { provincias } from '../../../data/provincias';
+import { especies, situaciones } from '../../../lib/mascotas';
+
+const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Guayaquil' }).format(new Date());
+---
+
+<PageLayout
+	title="Publicar una mascota"
+	group="Adopción"
+	deck="Llena la ficha con lo que sabes y sube una foto. La revisamos y te escribimos antes de publicarla."
+	crumbs={[{ label: 'Adopción', href: '/adopcion/' }]}
+	noindex
+>
+	<form class="form" id="form-mascota" novalidate>
+		<fieldset class="bloque">
+			<legend>La mascota</legend>
+			<div class="row">
+				<label class="field">
+					<span>Nombre</span>
+					<input type="text" name="nombre" required maxlength="60" autocomplete="off" />
+				</label>
+				<label class="field">
+					<span>Especie</span>
+					<select name="especie" required>
+						<option value="" disabled selected>Elige una</option>
+						{especies.map((e) => <option value={e.id}>{e.etiqueta}</option>)}
+					</select>
+				</label>
+				<label class="field">
+					<span>Sexo</span>
+					<select name="sexo" required>
+						<option value="" disabled selected>Elige uno</option>
+						<option>Hembra</option>
+						<option>Macho</option>
+					</select>
+				</label>
+			</div>
+			<div class="row">
+				<label class="field">
+					<span>Fecha de nacimiento</span>
+					<input type="date" name="nacimiento" required min="1990-01-01" max={hoy} />
+					<small>Si no la sabes, pon una fecha aproximada.</small>
+				</label>
+				<label class="field">
+					<span>Peso <em>(opcional)</em></span>
+					<input type="text" name="peso" maxlength="40" placeholder="18 kg" />
+				</label>
+				<label class="field">
+					<span>Color <em>(opcional)</em></span>
+					<input type="text" name="color" maxlength="80" placeholder="Marrón y blanco" />
+				</label>
+			</div>
+			<div class="row">
+				<label class="field">
+					<span>¿Tiene microchip?</span>
+					<select name="chip">
+						<option>No sé</option>
+						<option>Sí</option>
+						<option>No</option>
+					</select>
+				</label>
+				<label class="field">
+					<span>Situación actual</span>
+					<select name="situacion" required>
+						<option value="" disabled selected>Elige una</option>
+						{situaciones.map((s) => <option>{s}</option>)}
+					</select>
+				</label>
+			</div>
+			<div class="row">
+				<label class="field">
+					<span>Ciudad donde se encuentra</span>
+					<input type="text" name="ciudad" required maxlength="120" autocomplete="address-level2" />
+				</label>
+				<label class="field">
+					<span>Provincia</span>
+					<select name="provincia" required autocomplete="address-level1">
+						<option value="" disabled selected>Elige una</option>
+						{provincias.map(([c, n]) => <option value={c}>{n}</option>)}
+					</select>
+				</label>
+			</div>
+			<label class="field">
+				<span>Condiciones médicas <em>(opcional)</em></span>
+				<textarea name="condiciones" rows="3" maxlength="500"></textarea>
+				<small>Alergias, tratamientos, discapacidades. Si no hay ninguna conocida, déjalo vacío.</small>
+			</label>
+			<label class="field">
+				<span>Descripción</span>
+				<textarea name="descripcion" rows="5" required minlength="30" maxlength="1500"></textarea>
+				<small>Su carácter, con quién se lleva bien y qué hogar necesita.</small>
+			</label>
+			<div class="field foto">
+				<label for="foto"><span>Foto</span></label>
+				<input type="file" id="foto" name="foto" required accept="image/jpeg,image/png,image/webp" />
+				<small>JPG, PNG o WebP, de hasta 8 MB. Una imagen clara de la mascota.</small>
+				<figure class="vista" id="vista" hidden>
+					<img id="vista-img" alt="Vista previa de la foto elegida" />
+				</figure>
+			</div>
+		</fieldset>
+
+		<fieldset class="bloque">
+			<legend>Contacto para la adopción</legend>
+			<p class="ayuda">Quienes quieran adoptar usarán estos datos. Se muestran en la ficha publicada.</p>
+			<div class="row">
+				<label class="field">
+					<span>Nombre o refugio</span>
+					<input type="text" name="contactoNombre" required maxlength="120" autocomplete="name" />
+				</label>
+				<label class="field">
+					<span>Correo electrónico</span>
+					<input type="email" name="contactoCorreo" required autocomplete="email" inputmode="email" />
+				</label>
+				<label class="field">
+					<span>Teléfono <em>(opcional)</em></span>
+					<input type="tel" name="contactoTelefono" maxlength="30" autocomplete="tel" inputmode="tel" />
+				</label>
+			</div>
+			<label class="check">
+				<input type="checkbox" name="acepto" required />
+				<span>
+					Autorizo a Banana News a publicar la ficha y estos datos de contacto, según los
+					<a href="/terminos-y-condiciones/"> términos y condiciones</a>.
+				</span>
+			</label>
+		</fieldset>
+
+		<Turnstile />
+		<div class="actions">
+			<button type="submit" class="btn">
+				Enviar ficha
+				<Icon name="arrow-right" size={18} />
+			</button>
+		</div>
+		<p class="status" id="mascota-status" role="status" aria-live="polite"></p>
+	</form>
+</PageLayout>
+
+<style>
+	.form {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		max-width: 880px;
+		padding-bottom: 24px;
+	}
+	.bloque {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		margin: 0;
+		min-width: 0;
+		padding: clamp(20px, 4vw, 32px);
+		border: 0;
+		background: var(--bn-gris-100);
+		box-shadow: inset 0 6px 0 var(--bn-negro);
+	}
+	legend {
+		float: left;
+		width: 100%;
+		margin-bottom: 4px;
+		padding: 0;
+		font-size: clamp(22px, 2.6vw, 26px);
+		font-weight: 800;
+		line-height: 1.1;
+		letter-spacing: -0.015em;
+	}
+	legend + * {
+		clear: both;
+	}
+	.ayuda {
+		font-size: 14px;
+		line-height: 1.45;
+		color: var(--bn-gris-600);
+	}
+	.row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 16px;
+	}
+	.row .field {
+		flex: 1 1 200px;
+	}
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 700;
+	}
+	.field em {
+		font-style: normal;
+		font-weight: 500;
+		opacity: 0.7;
+	}
+	.field small {
+		font-size: 12px;
+		font-weight: 500;
+		opacity: 0.7;
+	}
+	.field input,
+	.field select,
+	.field textarea {
+		width: 100%;
+		padding: 12px 14px;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: var(--bn-hueso);
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+		font-size: 16px;
+		font-weight: 500;
+		line-height: 1.4;
+	}
+	.field input,
+	.field select {
+		min-height: 48px;
+		padding-block: 0;
+	}
+	.field textarea {
+		resize: vertical;
+	}
+	.field input:focus-visible,
+	.field select:focus-visible,
+	.field textarea:focus-visible {
+		outline: 3px solid var(--bn-amarillo);
+		outline-offset: 0;
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+	}
+	[aria-invalid='true'] {
+		box-shadow: inset 0 0 0 3px var(--bn-coral-700) !important;
+	}
+	.foto input[type='file'] {
+		padding: 10px 12px;
+		min-height: 48px;
+		height: auto;
+	}
+	.vista {
+		margin: 6px 0 0;
+		max-width: 280px;
+		aspect-ratio: 4 / 3;
+		background: var(--bn-gris-200);
+		box-shadow: inset 0 0 0 1px var(--line-soft);
+	}
+	.vista img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.vista[hidden] {
+		display: none;
+	}
+	.check {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		font-size: 14px;
+		line-height: 1.45;
+	}
+	.check input {
+		flex-shrink: 0;
+		width: 20px;
+		height: 20px;
+		margin: 1px 0 0;
+		accent-color: var(--bn-negro);
+	}
+	.check[data-invalid] {
+		color: var(--bn-coral-700);
+	}
+	.check a {
+		font-weight: 700;
+	}
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		min-height: 48px;
+		padding: 0 22px;
+		border: 0;
+		border-radius: var(--radius-s);
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+		font-size: 15px;
+		font-weight: 800;
+	}
+	.btn:hover {
+		background: var(--bn-negro-700);
+	}
+	.btn:active {
+		opacity: 0.85;
+	}
+	.btn :global(svg) {
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+	.btn:hover :global(svg) {
+		transform: translateX(4px);
+	}
+	.status {
+		min-height: 1.4em;
+		font-size: 15px;
+		font-weight: 700;
+		line-height: 1.4;
+	}
+	.status[data-kind='error'] {
+		color: var(--bn-coral-700);
+	}
+	.status[data-kind='ok'] {
+		padding: 12px 14px;
+		background: var(--bn-amarillo);
+		border-radius: var(--radius-xs);
+	}
+	@media (max-width: 720px) {
+		.bloque {
+			margin-inline: calc(var(--gutter) * -1);
+			padding-inline: var(--gutter);
+		}
+		.btn {
+			width: 100%;
+		}
+	}
+</style>
+
+<script>
+	import { actions } from 'astro:actions';
+	import { conBoton, leerError, renovarTurnstile } from '../../../scripts/envio';
+	import { evento } from '../../../scripts/analitica';
+
+	const form = document.getElementById('form-mascota') as HTMLFormElement | null;
+	const status = document.getElementById('mascota-status');
+
+	const say = (msg: string, kind: 'ok' | 'error') => {
+		if (!status) return;
+		status.textContent = msg;
+		status.dataset.kind = kind;
+	};
+
+	const MAX = 8 * 1024 * 1024;
+	const foto = document.getElementById('foto') as HTMLInputElement | null;
+	const vista = document.getElementById('vista') as HTMLElement | null;
+	const vistaImg = document.getElementById('vista-img') as HTMLImageElement | null;
+	let url = '';
+	foto?.addEventListener('change', () => {
+		if (url) URL.revokeObjectURL(url);
+		url = '';
+		const f = foto.files?.[0];
+		foto.removeAttribute('aria-invalid');
+		if (!f || !vista || !vistaImg) {
+			if (vista) vista.hidden = true;
+			return;
+		}
+		if (f.size > MAX) {
+			foto.value = '';
+			vista.hidden = true;
+			foto.setAttribute('aria-invalid', 'true');
+			say('La foto pesa más de 8 MB. Elige una más ligera.', 'error');
+			return;
+		}
+		url = URL.createObjectURL(f);
+		vistaImg.src = url;
+		vista.hidden = false;
+		say('', 'ok');
+	});
+
+	form?.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		const fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[required]'));
+		const marcar = (f: Element) => {
+			f.setAttribute('aria-invalid', 'true');
+			f.closest('.check')?.setAttribute('data-invalid', '');
+		};
+		fields.forEach((f) => {
+			f.removeAttribute('aria-invalid');
+			f.closest('.check')?.removeAttribute('data-invalid');
+		});
+		const bad = fields.find((f) => !f.checkValidity());
+		if (bad) {
+			marcar(bad);
+			bad.focus();
+			say(bad.name === 'acepto' ? 'Necesitamos tu autorización para publicar estos datos.' : 'Revisa los campos marcados.', 'error');
+			return;
+		}
+		say('Enviando…', 'ok');
+		const { error } = await conBoton(form, () => actions.publicarMascota(new FormData(form)));
+		renovarTurnstile(form);
+		if (error) {
+			const { campo, mensaje } = leerError(error);
+			const f = campo ? form.elements.namedItem(campo) : null;
+			if (f instanceof Element) {
+				marcar(f);
+				(f as HTMLElement).focus();
+			}
+			say(mensaje, 'error');
+			return;
+		}
+		evento('mascota_enviada', {});
+		form.reset();
+		if (vista) vista.hidden = true;
+		say('Recibimos la ficha. La revisaremos y te escribiremos al correo que indicaste antes de publicarla.', 'ok');
+	});
+</script>
