@@ -1,0 +1,83 @@
+---
+/**
+ * Grupo de chips de filtro. Sin JavaScript todos quedan visibles como botones inertes;
+ * el script de la página escucha `data-filtro` y alterna `aria-pressed`.
+ */
+interface Props {
+	etiqueta: string;
+	opciones: { id: string; texto: string; cantidad: number }[];
+	activo?: string;
+	class?: string;
+}
+const { etiqueta, opciones, activo = opciones[0]?.id, class: className } = Astro.props;
+---
+
+<div class:list={['filtro', className]}>
+	<span class="etiqueta">{etiqueta}</span>
+	<div class="chips" role="group" aria-label={`Filtrar por ${etiqueta.toLowerCase()}`}>
+		{
+			opciones.map((o) => (
+				<button type="button" class="chip" data-filtro={o.id} aria-pressed={o.id === activo ? 'true' : 'false'}>
+					{o.texto} · {o.cantidad}
+				</button>
+			))
+		}
+	</div>
+</div>
+
+<style>
+	.filtro {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.etiqueta {
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--bn-gris-600);
+	}
+	.chips {
+		display: flex;
+		gap: 8px;
+		/* En móvil se desliza; el margen negativo deja que el borde llegue al canto */
+		overflow-x: auto;
+		margin-inline: calc(var(--gutter) * -1);
+		padding: 4px var(--gutter);
+	}
+	.chip {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		min-height: 40px;
+		padding: 0 16px;
+		border: 0;
+		border-radius: var(--radius-s);
+		background: var(--bn-hueso);
+		color: var(--bn-negro);
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+		font-size: 14px;
+		font-weight: 700;
+		white-space: nowrap;
+		transition: background var(--dur-fast) var(--ease-out);
+	}
+	.chip:hover {
+		background: var(--bn-amarillo-100);
+	}
+	.chip[aria-pressed='true'] {
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.chip:active {
+		opacity: 0.85;
+	}
+	@media (min-width: 721px) {
+		.chips {
+			flex-wrap: wrap;
+			overflow: visible;
+			margin-inline: 0;
+			padding-inline: 0;
+		}
+	}
+</style>

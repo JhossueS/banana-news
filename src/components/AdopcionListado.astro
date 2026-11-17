@@ -1,0 +1,276 @@
+---
+import Crumbs from './Crumbs.astro';
+import Icon from './Icon.astro';
+import FiltroChips from './FiltroChips.astro';
+import MascotaCard from './MascotaCard.astro';
+import { especies, type Especie, type Mascota } from '../lib/mascotas';
+import { publicarMascotaHref as mailto } from '../data/site';
+
+interface Props {
+	mascotas: Mascota[];
+	/** Página de una sola especie: sin filtro, con enlaces a las demás */
+	especie?: Especie;
+	/** Titular: «Adopta un» + resaltado */
+	h1: [string, string];
+	bajada: string;
+	/** Migas intermedias; la última (la página) se agrega sola */
+	pagina: string;
+}
+const { mascotas, especie, h1, bajada, pagina } = Astro.props;
+const opciones = [
+	{ id: 'todas', texto: 'Todas', cantidad: mascotas.length },
+	...especies.map((e) => ({ id: e.id, texto: e.texto, cantidad: mascotas.filter((m) => m.especie === e.id).length })),
+];
+const migas = especie ? [{ label: 'Adopción', href: '/adopcion/' }, { label: pagina }] : [{ label: 'Adopción' }];
+---
+
+<section class="hero on-dark" aria-labelledby="h-adopcion">
+		<div class="wrap hero-inner">
+			<div class="hero-texto">
+				<h1 id="h-adopcion">{h1[0]} <span class="hl"><span>{h1[1]}</span></span></h1>
+				<p class="bajada">{bajada}</p>
+			</div>
+			<a href={mailto} class="cta-amarillo on-dark">
+				Publicar mascota
+				<Icon name="arrow-right" size={18} />
+			</a>
+		</div>
+	</section>
+
+	<main id="contenido" class="wrap main">
+		<Crumbs items={migas} />
+
+		<div class="barra">
+			{!especie && <FiltroChips etiqueta="Especie" {opciones} activo="todas" />}
+			<nav class="especies" aria-label="Adopción por especie">
+				{especie && <a href="/adopcion/">Todas las mascotas</a>}
+				{especies.filter((e) => e.id !== especie).map((e) => <a href={`/adopcion/${e.slug}/`}>{e.titulo}</a>)}
+			</nav>
+			<span id="conteo" class="conteo" role="status" aria-live="polite"></span>
+		</div>
+
+		<div class="grilla" id="grilla">
+			{mascotas.map((m) => <MascotaCard mascota={m} />)}
+
+			<div id="vacio" class="vacio" hidden={mascotas.length > 0}>
+				<span class="vacio-titulo" id="vacio-titulo"></span>
+				<span class="vacio-texto">Vuelve pronto o publica la primera ficha.</span>
+			</div>
+
+			<div class="publica">
+				<span class="rotulo">¿Rescatas o das en adopción?</span>
+				<span class="publica-titulo">Publica la ficha de una mascota</span>
+				<span class="publica-texto">Datos básicos, ciudad, situación actual, salud, foto y una breve descripción.</span>
+				<a href={mailto} class="cta-negro">
+					Publicar mascota
+					<Icon name="arrow-right" size={18} />
+				</a>
+			</div>
+		</div>
+	</main>
+
+
+<style>
+	.hero {
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.hero-inner {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 24px;
+		padding-block: 40px 44px;
+	}
+	.hero-texto {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		max-width: 720px;
+	}
+	h1 {
+		font-size: clamp(34px, 5.6vw, 64px);
+		font-weight: 800;
+		line-height: 0.98;
+		letter-spacing: -0.025em;
+	}
+	.hl {
+		display: inline-block;
+		padding: 0 8px;
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+		transform: skewX(-8deg);
+	}
+	.hl > span {
+		display: inline-block;
+		transform: skewX(8deg);
+	}
+	.bajada {
+		padding-left: 14px;
+		font-size: clamp(16px, 2vw, 20px);
+		line-height: 1.45;
+		box-shadow: inset 6px 0 0 var(--bn-coral);
+	}
+	.cta-amarillo,
+	.cta-negro {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 48px;
+		padding: 0 20px;
+		font-size: 15px;
+		font-weight: 800;
+		text-decoration: none;
+		border-radius: var(--radius-s);
+	}
+	.cta-amarillo {
+		background: var(--bn-amarillo);
+		color: var(--bn-negro);
+	}
+	.cta-amarillo:hover {
+		background: var(--bn-amarillo-300);
+	}
+	.cta-negro {
+		background: var(--bn-negro);
+		color: var(--bn-hueso);
+	}
+	.cta-negro:hover {
+		background: var(--bn-negro-700);
+	}
+	.cta-amarillo:active,
+	.cta-negro:active {
+		opacity: 0.85;
+	}
+	.hero-inner .cta-amarillo {
+		align-self: flex-start;
+	}
+	@media (min-width: 900px) {
+		.hero-inner {
+			flex-direction: row;
+			align-items: flex-end;
+			justify-content: space-between;
+			padding-block: 56px 60px;
+		}
+	}
+
+	.main {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		padding-top: 20px;
+		padding-bottom: 48px;
+	}
+	.barra {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.especies {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 20px;
+	}
+	.especies a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		font-size: 14px;
+		font-weight: 700;
+	}
+	.especies a:hover {
+		text-decoration-color: var(--bn-amarillo);
+		text-decoration-thickness: 3px;
+	}
+	.conteo {
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+	}
+	.grilla {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+		gap: 16px;
+		align-items: start;
+	}
+	.vacio,
+	.publica {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 8px;
+		padding: 28px 24px;
+		border-radius: var(--radius-xs);
+	}
+	.vacio {
+		background: var(--bn-gris-100);
+	}
+	.vacio[hidden] {
+		display: none;
+	}
+	.vacio-titulo {
+		font-size: 20px;
+		font-weight: 800;
+		line-height: 1.15;
+	}
+	.vacio-texto,
+	.publica-texto {
+		font-size: 14px;
+		line-height: 1.45;
+		color: var(--bn-gris-600);
+	}
+	.publica {
+		gap: 14px;
+		box-shadow: inset 0 0 0 2px var(--bn-negro);
+	}
+	.publica .cta-negro {
+		align-self: flex-start;
+	}
+	.rotulo {
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--bn-gris-600);
+	}
+	.publica-titulo {
+		font-size: 22px;
+		font-weight: 800;
+		line-height: 1.1;
+		letter-spacing: -0.01em;
+	}
+</style>
+
+<script>
+	
+	const fichas = Array.from(document.querySelectorAll<HTMLElement>('.ficha'));
+	const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filtro]'));
+	const conteo = document.getElementById('conteo')!;
+	const vacio = document.getElementById('vacio')!;
+	const vacioTitulo = document.getElementById('vacio-titulo')!;
+
+	function filtrar(id: string) {
+		let n = 0;
+		for (const f of fichas) {
+			const ok = id === 'todas' || f.dataset.especie === id;
+			f.hidden = !ok;
+			if (ok) n++;
+		}
+		chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filtro === id)));
+		conteo.textContent = n === 1 ? '1 mascota en adopción' : `${n} mascotas en adopción`;
+		vacio.hidden = n > 0;
+		vacioTitulo.textContent = id === 'todas' ? 'Aún no hay mascotas en adopción.' : 'Aún no hay mascotas de esta especie en adopción.';
+	}
+	chips.forEach((c) => c.addEventListener('click', () => filtrar(c.dataset.filtro!)));
+	filtrar('todas');
+
+	document.querySelectorAll<HTMLButtonElement>('.abrir').forEach((b) => {
+		const desc = document.getElementById(b.getAttribute('aria-controls')!)!;
+		const texto = b.querySelector('.abrir-texto')!;
+		b.addEventListener('click', () => {
+			const abierto = b.getAttribute('aria-expanded') === 'true';
+			b.setAttribute('aria-expanded', String(!abierto));
+			desc.hidden = abierto;
+			texto.textContent = abierto ? `Conoce a ${b.dataset.nombre}` : 'Ocultar descripción';
+		});
+	});
+</script>

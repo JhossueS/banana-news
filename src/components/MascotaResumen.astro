@@ -1,0 +1,178 @@
+---
+import Icon from './Icon.astro';
+import Tag from './Tag.astro';
+import { edadDesde, etiquetaEspecie, type Mascota } from '../lib/mascotas';
+
+interface Props {
+	mascota: Mascota;
+	href?: string;
+}
+const { mascota: m, href = `/adopcion/${Astro.props.mascota.slug}/` } = Astro.props;
+const resumen = [m.sexo, edadDesde(m.nacimiento), etiquetaEspecie(m.especie)];
+---
+
+<article class="resumen" aria-label={m.nombre}>
+	<div class="foto">
+		{
+			m.foto ? (
+				<img src={m.foto.src} alt={m.foto.alt} loading="lazy" decoding="async" />
+			) : (
+				<div class="vacio">
+					<Icon name="camera" size={28} />
+					<span>Sin foto todavía</span>
+				</div>
+			)
+		}
+		<Tag variant="amarillo" size="sm" class="estado">En adopción</Tag>
+	</div>
+	<div class="cuerpo">
+		<div class="titulo">
+			<h3><a {href}>{m.nombre}</a></h3>
+			<span class="ciudad"><Icon name="map-pin" size={16} />{m.ciudad}, {m.provincia}</span>
+		</div>
+		<ul class="chips" aria-label="Datos básicos">
+			{resumen.map((r) => <li>{r}</li>)}
+		</ul>
+		<p class="desc">{m.descripcion}</p>
+		<a {href} class="mas" aria-label={`Conoce a ${m.nombre}`}>
+			Conoce a {m.nombre}
+			<Icon name="arrow-right" size={18} />
+		</a>
+	</div>
+</article>
+
+<style>
+	.resumen {
+		display: grid;
+		grid-template-columns: 1fr;
+		background: var(--bn-hueso);
+		box-shadow: inset 0 0 0 1px var(--line-soft);
+		border-radius: var(--radius-xs);
+		overflow: hidden;
+	}
+	.foto {
+		position: relative;
+		aspect-ratio: 4 / 3;
+		background: var(--bn-gris-100);
+	}
+	.foto img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.vacio {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		font-size: 13px;
+		font-weight: 700;
+		color: var(--bn-gris-600);
+	}
+	.foto :global(.estado) {
+		position: absolute;
+		left: 12px;
+		bottom: 0;
+		border-radius: 0;
+	}
+	.cuerpo {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: flex-start;
+		gap: 14px;
+		padding: 20px;
+	}
+	.titulo {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+	}
+	h3 {
+		font-size: clamp(26px, 3vw, 32px);
+		font-weight: 800;
+		line-height: 1.05;
+		letter-spacing: -0.015em;
+	}
+	h3 a {
+		text-decoration: none;
+	}
+	/* Toda la tarjeta es clicable desde el título */
+	h3 a::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+	.resumen {
+		position: relative;
+	}
+	.ciudad {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--bn-gris-600);
+	}
+	.chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.chips li {
+		padding: 6px 10px;
+		background: var(--bn-gris-100);
+		border-radius: var(--radius-xs);
+		font-size: 13px;
+		font-weight: 700;
+	}
+	.desc {
+		max-width: 52ch;
+		font-size: 15px;
+		line-height: 1.5;
+		padding-left: 12px;
+		box-shadow: inset 6px 0 0 var(--bn-amarillo);
+		display: -webkit-box;
+		-webkit-line-clamp: 3;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+	.mas {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		font-size: 15px;
+		font-weight: 700;
+		text-decoration: none;
+	}
+	.resumen:hover .mas {
+		text-decoration: underline;
+		text-decoration-color: var(--bn-amarillo);
+		text-decoration-thickness: 3px;
+	}
+	.mas :global(svg) {
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+	.resumen:hover .mas :global(svg) {
+		transform: translateX(4px);
+	}
+	@media (min-width: 720px) {
+		.resumen {
+			grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+		}
+		.foto {
+			aspect-ratio: auto;
+			min-height: 260px;
+		}
+		.cuerpo {
+			padding: 28px;
+		}
+	}
+</style>
