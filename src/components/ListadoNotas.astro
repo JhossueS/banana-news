@@ -60,7 +60,7 @@ const lista = {
 			<ul class="grid">
 				{notas.map((n) => (
 					<li>
-						<NewsCard variant="horizontal" image={n.imagen} kicker={n.seccion} title={n.titulo} deck={n.bajada} href={`/noticias/${n.slug}/`} transicion={fotoNota(n.slug)} />
+						<NewsCard variant="horizontal" image={n.imagen} kicker={n.seccion} title={n.titulo} deck={n.bajada} href={`/noticias/${n.slug}/`} transicion={fotoNota(n.slug)} nivel={2} />
 					</li>
 				))}
 			</ul>

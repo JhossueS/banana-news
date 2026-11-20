@@ -19,8 +19,11 @@ interface Props {
 	class?: string;
 	/** view-transition-name de la foto (lib/transiciones) */
 	transicion?: string;
+	/** Nivel del encabezado del título: 2 si la lista cuelga directamente del h1; 3 bajo un h2 */
+	nivel?: 2 | 3;
 }
-const { variant = 'principal', image, title, deck, tag, kicker, href = '#', priority = false, class: className, transicion } = Astro.props;
+const { variant = 'principal', image, title, deck, tag, kicker, href = '#', priority = false, class: className, transicion, nivel = 3 } = Astro.props;
+const Titulo = `h${nivel}` as 'h2' | 'h3';
 // Principal: velo y texto van encima de la foto durante la transición (si no, la foto los taparía al volver a la portada)
 const vtCapa = (capa: string) => (transicion ? `view-transition-name: ${transicion}-${capa}; view-transition-class: tarjeta` : undefined);
 ---
@@ -39,11 +42,11 @@ const vtCapa = (capa: string) => (transicion ? `view-transition-name: ${transici
 			<div class="scrim" aria-hidden="true" style={vtCapa('velo')} />
 			<div class="body" style={vtCapa('texto')}>
 				{tag && <Tag size="md">{tag}</Tag>}
-				<h3 class="title">
+				<Titulo class="title">
 					<a class="stretch" {href}>
 						{title}
 					</a>
-				</h3>
+				</Titulo>
 				{deck && <p class="deck">{deck}</p>}
 				<span class="rule" aria-hidden="true" />
 			</div>
@@ -55,11 +58,11 @@ const vtCapa = (capa: string) => (transicion ? `view-transition-name: ${transici
 			</div>
 			<div class="body">
 				{kicker && <span class="kicker">{kicker}</span>}
-				<h3 class="title">
+				<Titulo class="title">
 					<a class="stretch" {href}>
 						{title}
 					</a>
-				</h3>
+				</Titulo>
 				{deck && <p class="deck">{deck}</p>}
 				<Icon name="arrow-right" size={20} class="arrow" />
 			</div>
